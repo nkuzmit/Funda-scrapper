@@ -28,5 +28,5 @@ filters:
   keywords: []               # only listings whose description contains at least one of these keywords; empty list means no filtering
 
 schedule:
-  times_per_day: 5
-  hours: [7, 9, 12, 15, 18]
+  times_per_day: 6
+  hours: [7, 9, 12, 15, 16, 18]
