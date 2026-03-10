@@ -56,8 +56,18 @@ Here's a simple breakdown of what each file does:
 - `scheduler.py`: Manages the timing of scrapes. It uses a scheduler to run the scraping process at specified hours every day.
 - `config.yaml`: A configuration file where you set your Telegram bot details, filters for listings, and the schedule for running scrapes.
 - `requirements.txt`: Lists all the Python packages needed to run the bot.
+- `requirements-dev.txt`: Development dependencies (tests).
 - `seen_listings.json`: A file created automatically to store URLs of listings that have already been processed, so you don't get duplicate notifications.
 - Log files: `main.log`, `scraper.log`, `notifier.log`, `scheduler.log` for debugging any issues.
+
+## Running Tests
+
+A small test suite verifies the parsing utilities, filter logic, scraper parsing from sample HTML, and notification formatting. To run them:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
 
 ## Notes
 
