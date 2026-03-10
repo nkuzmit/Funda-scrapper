@@ -3,10 +3,13 @@ telegram:
   chat_id: "YOUR_TELEGRAM_CHAT_ID"
 
 filters:
-  min_price: 0
-  max_price: 1000000
+  areas:
+    - "amsterdam"            # list of funda area slugs or cities
+  price_min: 0
+  price_max: null            # null = no upper bound
+  publication_days: null     # only listings published within this many days
+  energy_labels: []          # e.g. ["A+++", "A++"]
   min_bedrooms: 1
-  city: "amsterdam"
   keywords: []
 
 schedule:

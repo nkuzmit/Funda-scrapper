@@ -7,12 +7,44 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def scrape_funda(city: str) -> list:
-    """Scrape funda.nl for house listings in the given city.
+def _build_query(filters: dict) -> str:
+    """Compose the query portion of a funda.nl search URL from filters."""
+    parts: list[str] = []
+    # areas are quoted strings inside a JSON-like array
+    areas = filters.get('areas')
+    if areas:
+        quoted = ','.join(f'"{a}"' for a in areas)
+        parts.append(f'selected_area=[{quoted}]')
+    # price range
+    minp = filters.get('price_min')
+    maxp = filters.get('price_max')
+    if minp is not None or maxp is not None:
+        minp = '' if minp is None else minp
+        maxp = '' if maxp is None else maxp
+        parts.append(f'price=\"{minp}-{maxp}\"')
+    # publication date filter
+    if filters.get('publication_days') is not None:
+        parts.append(f'publication_date=\"{filters["publication_days"]}\"')
+    # energy labels
+    energy = filters.get('energy_labels')
+    if energy:
+        quoted = ','.join(f'"{e}"' for e in energy)
+        parts.append(f'energy_label=[{quoted}]')
+    # sort by newest first
+    parts.append('sort=\"date_down\"')
+    return '&'.join(parts)
 
-    Returns a list of dictionaries containing listing metadata.
+
+def scrape_funda(filters: dict) -> list:
+    """Scrape funda.nl using the given filters.
+
+    The *filters* dict should mirror the configuration file; the URL
+    will be constructed from it.  Returns a list of listing dictionaries
+    containing at least the keys used by :func:`filters.matches_filters`.
     """
-    url = f"https://www.funda.nl/koop/{city}/"
+    base = "https://www.funda.nl/zoeken/koop?"
+    query = _build_query(filters)
+    url = base + query
     try:
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         response.raise_for_status()
@@ -37,6 +69,13 @@ def scrape_funda(city: str) -> list:
                 rooms_elem = item.find('span', class_='search-result-rooms')
                 rooms = rooms_elem.text.strip() if rooms_elem else 'Unknown'
 
+                # optional additional fields
+                pub_elem = item.find('span', class_='search-result-publication-date')  # placeholder
+                publication_date = pub_elem.text.strip() if pub_elem else None
+
+                energy_elem = item.find('span', class_='search-result-energy-label')  # placeholder
+                energy_label = energy_elem.text.strip() if energy_elem else None
+
                 url_elem = item.find('a', href=True)
                 listing_url = 'https://www.funda.nl' + url_elem['href'] if url_elem and url_elem['href'].startswith('/') else 'Unknown'
 
@@ -49,6 +88,8 @@ def scrape_funda(city: str) -> list:
                     'location': location,
                     'size': size,
                     'rooms': rooms,
+                    'publication_date': publication_date,
+                    'energy_label': energy_label,
                     'url': listing_url,
                     'thumbnail': thumbnail
                 })
@@ -81,9 +122,12 @@ def save_seen(seen: set):
         logger.error(f"Error saving seen listings: {e}")
 
 
-def get_new_listings(city: str) -> list:
-    """Get new listings not seen before; updates the seen set."""
-    listings = scrape_funda(city)
+def get_new_listings(filters: dict) -> list:
+    """Get new listings not seen before; updates the seen set.
+
+    *filters* is the same object passed to :func:`scrape_funda`.
+    """
+    listings = scrape_funda(filters)
     seen = load_seen()
     new_listings = [l for l in listings if l['url'] not in seen and l['url'] != 'Unknown']
     seen.update(l['url'] for l in new_listings)

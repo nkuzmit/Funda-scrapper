@@ -3,7 +3,7 @@ import os
 import pytest
 from types import SimpleNamespace
 
-from funda_bot.scraper import scrape_funda, load_seen, save_seen, get_new_listings
+from funda_bot.scraper import scrape_funda, load_seen, save_seen, get_new_listings, _build_query
 
 SAMPLE_HTML = """<html><body>
 <div class="search-result__item">
@@ -24,12 +24,27 @@ class DummyResponse:
         pass
 
 
+def test_build_query():
+    filters = {
+        'areas': ['utrecht/tuinwijk-oost', 'utrecht/wittevrouwen'],
+        'price_min': 55000,
+        'price_max': None,
+        'publication_days': 3,
+        'energy_labels': ['A+++', 'A++']
+    }
+    query = _build_query(filters)
+    assert 'selected_area' in query
+    assert 'price' in query
+    assert 'publication_date' in query
+    assert 'energy_label' in query
+
+
 def test_scrape_funda(monkeypatch):
     def fake_get(url, headers=None):
         return DummyResponse(SAMPLE_HTML)
     monkeypatch.setattr('requests.get', fake_get)
 
-    listings = scrape_funda('amsterdam')
+    listings = scrape_funda({'areas': ['amsterdam']})
     assert len(listings) == 1
     item = listings[0]
     assert item['title'] == 'Test House'
@@ -53,14 +68,14 @@ def test_seen_storage(tmp_path, monkeypatch):
 def test_get_new_listings(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     # stub scrape_funda to return two entries
-    def fake_scrape(city):
+    def fake_scrape(filters):
         return [
             {'url': 'a', 'title': 'A', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None},
             {'url': 'b', 'title': 'B', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None}
         ]
     monkeypatch.setattr('funda_bot.scraper.scrape_funda', fake_scrape)
-    new = get_new_listings('city')
+    new = get_new_listings({'areas': ['x']})
     assert len(new) == 2
     # second call should return empty (urls are saved)
-    new2 = get_new_listings('city')
+    new2 = get_new_listings({'areas': ['x']})
     assert new2 == []

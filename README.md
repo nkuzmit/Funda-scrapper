@@ -43,7 +43,13 @@ This is an MVP scraper bot that monitors www.funda.nl for new house-for-sale lis
 Edit `config.yaml` to customize:
 
 - `telegram`: bot_token and chat_id
-- `filters`: min_price, max_price, min_bedrooms, city, keywords (list)
+- `filters`: set the various criteria used to build the Funda query.
+  * `areas`: list of area slugs (for example `utrecht/tuinwijk-oost`).
+  * `price_min` / `price_max`: numeric bounds. Leave `price_max` null for no upper limit.
+  * `publication_days`: number of past days to include (null for any age).
+  * `energy_labels`: whitelist of energy ratings (e.g. `["A+++","A++"]`).
+  * `min_bedrooms`: minimum number of rooms.
+  * `keywords`: list of keywords to look for in the title.
 - `schedule`: hours (list of hours to run, e.g. [9, 12, 15, 18])
 
 ## Scraper Structure
@@ -51,7 +57,7 @@ Edit `config.yaml` to customize:
 Here's a simple breakdown of what each file does:
 
 - `main.py`: The main script that starts the bot. It loads the configuration, sets up the scheduler, and runs the scraping and notification process.
-- `scraper.py`: Contains functions to scrape listings from Funda.nl. It fetches the webpage, parses the HTML to extract listing details, and keeps track of seen listings to avoid duplicates.
+- `scraper.py`: Contains functions to scrape listings from Funda.nl. A private helper builds the search URL from the filter settings, then it fetches the webpage, parses the HTML to extract listing details (including optional energy label and publication date), and keeps track of seen listings to avoid duplicates.
 - `notifier.py`: Handles sending notifications to Telegram. It formats the listing information into a message and sends it, including a photo if available.
 - `scheduler.py`: Manages the timing of scrapes. It uses a scheduler to run the scraping process at specified hours every day.
 - `config.yaml`: A configuration file where you set your Telegram bot details, filters for listings, and the schedule for running scrapes.
