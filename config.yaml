@@ -4,7 +4,14 @@ telegram:
 
 filters:
   areas:
-    - "amsterdam"            # list of funda area slugs or cities
+    - "utrecht/tuinwijk-oost"
+    - "utrecht/tuinwijk-west"
+    - "utrecht/vogelenbuurt"
+    - "utrecht/zeeheldenbuurt-hengeveldstraat-en-omgeving"
+    - "utrecht/wittevrouwen"
+    - "utrecht/buiten-wittevrouwen"
+    - "utrecht/wilhelminapark-en-omgeving"
+    - "utrecht/oudwijk"
   price_min: 0
   price_max: null            # null = no upper bound
   publication_days: null     # only listings published within this many days
