@@ -21,10 +21,11 @@ def load_config():
 def scrape_and_notify(config):
     """Scrape and notify for new matching listings"""
     try:
-        listings = get_new_listings(config['filters']['city'])
+        filters = config['filters']
+        listings = get_new_listings(filters)
         logging.info(f"Found {len(listings)} new listings")
         for listing in listings:
-            if matches_filters(listing, config['filters']):
+            if matches_filters(listing, filters):
                 notify_listing(
                     config['telegram']['bot_token'],
                     config['telegram']['chat_id'],
