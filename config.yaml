@@ -1,6 +1,6 @@
 telegram:
-  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"
+  bot_token: "***REMOVED***"
+  chat_id: "532024541"
 
 filters:
   areas:
@@ -13,5 +13,5 @@ filters:
   keywords: []
 
 schedule:
-  times_per_day: 4
-  hours: [9, 12, 15, 18]
+  times_per_day: 5
+  hours: [7, 9, 12, 15, 18]
