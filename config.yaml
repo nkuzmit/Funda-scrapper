@@ -3,7 +3,7 @@ telegram:
   chat_id: "532024541"
 
 filters:
-  areas:
+  areas:                     # only listings in these areas; empty list means no filtering 
     - "utrecht/tuinwijk-oost"
     - "utrecht/tuinwijk-west"
     - "utrecht/vogelenbuurt"
@@ -12,12 +12,20 @@ filters:
     - "utrecht/buiten-wittevrouwen"
     - "utrecht/wilhelminapark-en-omgeving"
     - "utrecht/oudwijk"
-  price_min: 0
+  price_min: 550000          # null = no lower bound
   price_max: null            # null = no upper bound
-  publication_days: null     # only listings published within this many days
-  energy_labels: []          # e.g. ["A+++", "A++"]
-  min_bedrooms: 1
-  keywords: []
+  publication_days: 3        # only listings published within this many days
+  energy_labels:             # only listings with these energy labels; empty list means no filtering
+    - "A++++"
+    - "A+++"
+    - "A++"
+    - "A+"
+    - "A"
+    - "B"
+    - "C"
+    - "A+++++"          
+  min_bedrooms: 1            # null = no lower bound
+  keywords: []               # only listings whose description contains at least one of these keywords; empty list means no filtering
 
 schedule:
   times_per_day: 5
