@@ -50,7 +50,12 @@ Edit `config.yaml` to customize:
   * `energy_labels`: whitelist of energy ratings (e.g. `["A+++","A++"]`).
   * `min_bedrooms`: minimum number of rooms.
   * `keywords`: list of keywords to look for in the title.
-- `schedule`: hours (list of hours to run, e.g. [9, 12, 15, 18])
+- `schedule`: hours (list of times to run each day).
+  Entries may be simple integers (``9`` = 09:00) or strings like ``"16:08"`` or
+  ``"18:30:00"``; missing minutes default to ``:00``.  For example
+  ``hours: [7, 9, "12:30", "16:08:00"]`` produces four jobs at 07:00, 09:00,
+  12:30 and 16:08.  The scheduler requires the bot to be restarted when the
+  configuration is changed.
 
 ## Scraper Structure
 
