@@ -51,11 +51,12 @@ Edit `config.yaml` to customize:
   * `min_bedrooms`: minimum number of rooms.
   * `keywords`: list of keywords to look for in the title.
 - `schedule`: hours (list of times to run each day).
-  Entries may be simple integers (``9`` = 09:00) or strings like ``"16:08"`` or
-  ``"18:30:00"``; missing minutes default to ``:00``.  For example
-  ``hours: [7, 9, "12:30", "16:08:00"]`` produces four jobs at 07:00, 09:00,
-  12:30 and 16:08.  The scheduler requires the bot to be restarted when the
-  configuration is changed.
+  Entries should be strings in ``"HH:MM"`` (or ``"HH:MM:SS"``) format; you
+  may omit the trailing ``:SS``.  Because of YAML parsing the values should be
+  quoted, e.g. ``["7:00","9:00","12:00","15:00","16:15","18:00"]``.
+  If the minute portion is ``00`` you can also specify a plain integer or
+  string without ``:00`` and it will be treated the same.  The scheduler
+  requires the bot to be restarted when the configuration is changed.
 
 ## Scraper Structure
 
