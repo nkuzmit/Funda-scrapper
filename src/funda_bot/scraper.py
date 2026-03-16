@@ -123,13 +123,19 @@ def save_seen(seen: set):
 
 
 def get_new_listings(filters: dict) -> list:
-    """Get new listings not seen before; updates the seen set.
+    """Get new listings not seen before.
 
-    *filters* is the same object passed to :func:`scrape_funda`.
+    Does NOT persist seen state — the caller must call mark_seen(url)
+    for each listing only after it has been successfully delivered,
+    to avoid silently dropping listings on notification failure.
     """
     listings = scrape_funda(filters)
     seen = load_seen()
-    new_listings = [l for l in listings if l['url'] not in seen and l['url'] != 'Unknown']
-    seen.update(l['url'] for l in new_listings)
+    return [l for l in listings if l['url'] not in seen and l['url'] != 'Unknown']
+
+
+def mark_seen(url: str):
+    """Mark a single listing URL as seen and persist immediately."""
+    seen = load_seen()
+    seen.add(url)
     save_seen(seen)
-    return new_listings
