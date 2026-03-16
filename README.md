@@ -161,5 +161,5 @@ pytest
 ## Notes
 
 - **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service.
-- `publication_date` is extracted directly from the Nuxt payload and used for the `publication_days` filter.
+- The `publication_days` filter uses `publication_date` extracted directly from the Nuxt SSR payload. Listings without a date are passed through unchanged.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.

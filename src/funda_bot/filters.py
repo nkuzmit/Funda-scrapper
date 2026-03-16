@@ -57,9 +57,8 @@ def matches_filters(listing: dict, filters: dict) -> bool:
             if listing.get('energy_label') not in labels:
                 return False
 
-        # publication_date is currently always None (Funda requires login to
-        # expose it). The days_since filter is applied upstream via FundaScraper,
-        # so this block is a no-op for now but kept for future compatibility.
+        # publication_date is extracted from the Nuxt payload (ISO 8601 string).
+        # Listings without a date are passed through unchanged.
         if filters.get('publication_days'):
             pub = listing.get('publication_date')
             if pub:

@@ -16,15 +16,17 @@ def schedule_scrapes(hours: list, callback):
     try:
         scheduler = BlockingScheduler(timezone=_TIMEZONE)
         for entry in hours:
-            # interpret entry
-            if isinstance(entry, str) and ':' in entry:
-                parts = entry.split(':')  # could be HH:MM or HH:MM:SS
-                h = int(parts[0])
-                m = int(parts[1]) if len(parts) > 1 and parts[1] else 0
-                # ignore seconds if provided
-            else:
-                h = int(entry)
-                m = 0
+            try:
+                if isinstance(entry, str) and ':' in entry:
+                    parts = entry.split(':')
+                    h = int(parts[0])
+                    m = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+                else:
+                    h = int(entry)
+                    m = 0
+            except (ValueError, IndexError):
+                logger.warning(f"Skipping invalid schedule entry: {entry!r}")
+                continue
             scheduler.add_job(callback, 'cron', hour=h, minute=m)
         scheduler.start()
     except Exception as e:

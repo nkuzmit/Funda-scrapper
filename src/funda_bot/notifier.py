@@ -130,7 +130,7 @@ class EmailNotifier:
             msg.attach(MIMEText(_format_plain(listing), 'plain'))
             msg.attach(MIMEText(_format_html(listing), 'html'))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
                 server.ehlo()
                 server.starttls()
                 server.login(self.sender, self.password)

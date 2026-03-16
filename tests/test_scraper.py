@@ -1,5 +1,5 @@
 import pytest
-from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _df_to_listings
+from funda_bot.scraper import load_seen, mark_seen, get_new_listings
 
 
 # ---------------------------------------------------------------------------
@@ -26,44 +26,6 @@ def test_mark_seen_idempotent(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# DataFrame normalisation
-# ---------------------------------------------------------------------------
-
-def test_df_to_listings_basic():
-    """_df_to_listings maps DataFrame rows to our listing dict format."""
-    import pandas as pd
-    df = pd.DataFrame([{
-        'url': 'https://funda.nl/detail/1/',
-        'address': 'Teststraat 1, Utrecht',
-        'city': 'Utrecht',
-        'price': '450000',
-        'living_area': '90',
-        'num_of_rooms': '4',
-        'energy_label': 'A',
-    }])
-    listings = _df_to_listings(df)
-    assert len(listings) == 1
-    item = listings[0]
-    assert item['url'] == 'https://funda.nl/detail/1/'
-    assert item['title'] == 'Teststraat 1, Utrecht'
-    assert item['price'] == '450000'
-    assert item['rooms'] == '4'
-    assert item['energy_label'] == 'A'
-
-
-def test_df_to_listings_skips_empty_url():
-    """Rows with missing or nan URLs are skipped."""
-    import pandas as pd
-    df = pd.DataFrame([
-        {'url': 'nan', 'address': 'A', 'city': 'X', 'price': '1', 'living_area': '1', 'num_of_rooms': '1', 'energy_label': ''},
-        {'url': 'https://funda.nl/detail/2/', 'address': 'B', 'city': 'Y', 'price': '2', 'living_area': '2', 'num_of_rooms': '2', 'energy_label': 'B'},
-    ])
-    listings = _df_to_listings(df)
-    assert len(listings) == 1
-    assert listings[0]['url'] == 'https://funda.nl/detail/2/'
-
-
-# ---------------------------------------------------------------------------
 # get_new_listings
 # ---------------------------------------------------------------------------
 
@@ -75,7 +37,7 @@ def test_get_new_listings_filters_seen(tmp_path, monkeypatch):
         {'url': 'https://funda.nl/1', 'title': 'A', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None, 'energy_label': None, 'publication_date': None},
         {'url': 'https://funda.nl/2', 'title': 'B', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None, 'energy_label': None, 'publication_date': None},
     ]
-    monkeypatch.setattr('funda_bot.scraper.scrape_funda', lambda f: fake)
+    monkeypatch.setattr('funda_bot.scraper.scrape_funda', lambda f, n_pages=1: fake)
 
     new = get_new_listings({})
     assert len(new) == 2
