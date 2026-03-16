@@ -1,95 +1,165 @@
 # Funda Scraper Bot
 
-This is an MVP scraper bot that monitors www.funda.nl for new house-for-sale listings and sends matches to Telegram.
+A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale listings and delivers matches across multiple notification channels.
 
 ## Features
 
-- Scrapes house listings from funda.nl
-- Filters by price, bedrooms, city, keywords
-- Sends notifications to Telegram with photo if available
-- Persists seen listings to avoid duplicates
-- Scheduled runs
+- Fetches listings via the [funda-scraper](https://github.com/whchien/funda-scraper) library (structured data, no fragile HTML parsing)
+- Filters by price, bedrooms, area, energy label, and keywords
+- Notifications via **Telegram**, **Email (SMTP/HTML)**, and **WhatsApp (CallMeBot)**
+- Persists seen listings in SQLite to avoid duplicate notifications
+- Listings are only marked as seen after confirmed delivery — failed sends are retried on the next run
+- Scheduled daily runs at configurable times (Europe/Amsterdam timezone)
+
+## Requirements
+
+- Python 3.10+
+- Internet connection
+- At least one notification channel configured (see Setup)
+
+---
 
 ## Setup
 
-1. **Get a Telegram Bot Token:**
-   - Open Telegram and search for @BotFather
-   - Send `/newbot` and follow the instructions
-   - Copy the bot token
+### 1. Install dependencies
 
-2. **Get your Chat ID:**
-   - Start a conversation with your bot
-   - Send a message to the bot
-   - Visit `https://api.telegram.org/bot<YourBOTToken>/getUpdates` in your browser
-   - Find the "chat" object and copy the "id" value
+```bash
+pip install -r requirements.txt
+```
 
-3. **Configure config.yaml:**
-   - Replace `YOUR_TELEGRAM_BOT_TOKEN` with your bot token
-   - Replace `YOUR_TELEGRAM_CHAT_ID` with your chat ID
-   - Adjust filters and schedule as needed
+### 2. Configure credentials
 
-4. **Install dependencies:**
-   ```
-   pip install -r requirements.txt
-   ```
+Copy `.env.example` to `.env` and fill in the credentials for whichever channels you want active:
 
-5. **Run the bot:**
-   ```
-   python main.py
-   ```
+```bash
+cp .env.example .env
+```
+
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+
+# Email (SMTP — Gmail by default)
+EMAIL_SENDER=you@gmail.com
+EMAIL_PASSWORD=your_app_password
+EMAIL_RECIPIENT=recipient@example.com
+
+# WhatsApp (CallMeBot)
+WHATSAPP_PHONE=+31612345678
+WHATSAPP_APIKEY=your_callmebot_apikey
+```
+
+Credentials never go in `config.yaml` — `.env` is gitignored.
+
+### 3. Enable channels in config.yaml
+
+```yaml
+notifications:
+  channels: ["telegram"]          # add "email" and/or "whatsapp" as needed
+```
+
+### 4. Run the bot
+
+```bash
+python main.py
+```
+
+---
+
+## Channel Setup
+
+### Telegram
+
+1. Open Telegram and search for **@BotFather**
+2. Send `/newbot` and follow the prompts — copy the bot token
+3. Start a conversation with your bot, then visit:
+   `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+4. Find the `chat.id` value in the response
+
+### Email
+
+The bot uses SMTP with STARTTLS (Gmail by default, port 587).
+
+For Gmail, generate an **App Password** (requires 2FA enabled):
+`Google Account → Security → 2-Step Verification → App passwords`
+
+Use the app password as `EMAIL_PASSWORD` — not your regular account password.
+
+To use a different provider, you can extend `EmailNotifier` in `notifier.py` with a custom `smtp_host` and `smtp_port`.
+
+### WhatsApp (CallMeBot)
+
+1. Add the CallMeBot number to your WhatsApp contacts: **+34 644 59 97 23**
+2. Send this message to that number via WhatsApp:
+   `I allow callmebot to send me messages`
+3. You'll receive an API key in reply — set it as `WHATSAPP_APIKEY` in `.env`
+4. Set `WHATSAPP_PHONE` to your full international number (e.g. `+31612345678`)
+
+> CallMeBot is a free, unofficial service — suitable for personal use but not production-grade.
+
+---
 
 ## Configuration
 
-Edit `config.yaml` to customize:
+Edit `config.yaml` to customise filters and schedule. Credentials are in `.env` only.
 
-- `telegram`: bot_token and chat_id
-- `filters`: set the various criteria used to build the Funda query.
-  * `areas`: list of area slugs (for example `utrecht/tuinwijk-oost`).
-  * `price_min` / `price_max`: numeric bounds. Leave `price_max` null for no upper limit.
-  * `publication_days`: number of past days to include (null for any age).
-  * `energy_labels`: whitelist of energy ratings (e.g. `["A+++","A++"]`).
-  * `min_bedrooms`: minimum number of rooms.
-  * `keywords`: list of keywords to look for in the title.
-- `schedule`: hours (list of times to run each day).
-  Entries should be strings in ``"HH:MM"`` (or ``"HH:MM:SS"``) format; you
-  may omit the trailing ``:SS``.  Because of YAML parsing the values should be
-  quoted, e.g. ``["7:00","9:00","12:00","15:00","16:15","18:00"]``.
-  If the minute portion is ``00`` you can also specify a plain integer or
-  string without ``:00`` and it will be treated the same.  The scheduler
-  requires the bot to be restarted when the configuration is changed.
+```yaml
+notifications:
+  channels: ["telegram"]        # active channels: telegram, email, whatsapp
 
-## Scraper Structure
+filters:
+  areas:                        # funda.nl area slugs; empty = no filter
+    - "utrecht/oudwijk"
+  price_min: 550000             # null = no lower bound
+  price_max: null               # null = no upper bound
+  publication_days: 3           # listings published within this many days
+  energy_labels: ["A", "B"]    # null or empty = no filter
+  min_bedrooms: 1               # null = no lower bound
+  keywords: []                  # match any keyword in listing title; empty = no filter
 
-Here's a simple breakdown of what each file does:
+schedule:
+  hours: ["7:00", "9:00", "12:00", "15:00", "16:15", "18:00"]
+```
 
-- `main.py`: The main script that starts the bot. It loads the configuration, sets up the scheduler, and runs the scraping and notification process.
-- `scraper.py`: Contains functions to scrape listings from Funda.nl. A private helper builds the search URL from the filter settings, then it fetches the webpage, parses the HTML to extract listing details (including optional energy label and publication date), and keeps track of seen listings to avoid duplicates.
-- `notifier.py`: Handles sending notifications to Telegram. It formats the listing information into a message and sends it, including a photo if available.
-- `scheduler.py`: Manages the timing of scrapes. It uses a scheduler to run the scraping process at specified hours every day.
-- `config.yaml`: A configuration file where you set your Telegram bot details, filters for listings, and the schedule for running scrapes.
-- `requirements.txt`: Lists all the Python packages needed to run the bot.
-- `requirements-dev.txt`: Development dependencies (tests).
-- `seen_listings.json`: A file created automatically to store URLs of listings that have already been processed, so you don't get duplicate notifications.
-- Log files: `main.log`, `scraper.log`, `notifier.log`, `scheduler.log` for debugging any issues.
+**Area slugs** follow the funda.nl URL pattern — the part after `funda.nl/`. For example, the Utrecht neighbourhood Oudwijk is `utrecht/oudwijk`.
+
+**Schedule times** are in `HH:MM` format (24-hour, Europe/Amsterdam timezone). The bot must be restarted to pick up schedule changes.
+
+---
+
+## Project Structure
+
+```
+main.py                  Entry point — wires config, notifiers, and scheduler
+src/funda_bot/
+  scraper.py             Fetches listings via funda-scraper; manages SQLite seen-state
+  filters.py             Post-scrape filter matching (price, rooms, labels, keywords)
+  notifier.py            Notifier protocol + Telegram / Email / WhatsApp implementations
+  scheduler.py           APScheduler wrapper; runs callback at configured daily times
+config.yaml              Non-sensitive configuration (filters, schedule, active channels)
+.env                     Secrets (credentials) — gitignored, never committed
+requirements.txt         Runtime dependencies
+requirements-dev.txt     Development dependencies (pytest)
+```
+
+**Runtime files** (auto-created, gitignored):
+- `seen_listings.db` — SQLite database of delivered listing URLs
+- `main.log` — application log
+
+---
 
 ## Running Tests
-
-A small test suite verifies the parsing utilities, filter logic, scraper parsing from sample HTML, and notification formatting. To run them:
 
 ```bash
 pip install -r requirements-dev.txt
 pytest
 ```
 
+---
+
 ## Notes
 
-- The scraper uses BeautifulSoup with requests. If the site requires JavaScript, you may need to switch to Playwright.
-- CSS selectors in `scraper.py` are placeholders and may need updating if the site structure changes.
-- Logs are saved to `main.log`, `scraper.log`, `notifier.log`, `scheduler.log`
-- Seen listings are stored in `seen_listings.json`
-
-## Requirements
-
-- Python 3.9+
-- Internet connection
-- Telegram account
+- **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service.
+- `publication_date` is not currently returned by funda-scraper (Funda requires login to expose it). The `publication_days` filter is applied at fetch time via the library's `days_since` parameter instead.
+- All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
