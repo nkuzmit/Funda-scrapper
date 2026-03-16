@@ -1,6 +1,5 @@
-telegram:
-  bot_token: "***REMOVED***"
-  chat_id: "532024541"
+notifications:
+  channels: ["telegram"]   # active channels: telegram, email, whatsapp
 
 filters:
   areas:                     # only listings in these areas; empty list means no filtering 
