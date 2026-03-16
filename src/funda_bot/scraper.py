@@ -209,10 +209,11 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
             # thumbnail
             thumb_ids = r(obj.get('thumbnail_id'))
             thumb_id = r(thumb_ids[0]) if isinstance(thumb_ids, list) else thumb_ids
-            thumbnail = (
-                f'{_THUMBNAIL_BASE}/{thumb_id}_extralarge.jpg'
-                if isinstance(thumb_id, int) else None
-            )
+            if isinstance(thumb_id, int):
+                s = str(thumb_id)
+                thumbnail = f'{_THUMBNAIL_BASE}/{s[:-6]}/{s[-6:-3]}/{s[-3:]}_360x240.jpg'
+            else:
+                thumbnail = None
 
             # url
             relative_url = r(obj.get('object_detail_page_relative_url'))
