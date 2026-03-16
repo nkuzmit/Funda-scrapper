@@ -3,16 +3,18 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 logger = logging.getLogger(__name__)
 
+_TIMEZONE = 'Europe/Amsterdam'
+
 
 def schedule_scrapes(hours: list, callback):
     """Arrange for *callback* to run at each of the specified times daily.
 
     The ``hours`` list may contain integers (hour of day) or strings of the
     form ``HH`` or ``HH:MM`` (24‑hour clock).  Entries without minutes default
-    to minute 0.
+    to minute 0.  All times are interpreted in Europe/Amsterdam timezone.
     """
     try:
-        scheduler = BlockingScheduler()
+        scheduler = BlockingScheduler(timezone=_TIMEZONE)
         for entry in hours:
             # interpret entry
             if isinstance(entry, str) and ':' in entry:
