@@ -119,6 +119,14 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     Returns (listings, total_count).  total_count is the number of matches
     across all pages; listings contains only the current page.
     """
+    # Detect the bot-challenge page before attempting to parse
+    if 'Je bent bijna op de pagina' in html or 'je bent bijna' in html.lower():
+        logger.warning(
+            'Funda returned a bot-challenge page — IP may be rate-limited. '
+            'The bot will retry on the next scheduled run.'
+        )
+        return [], 0
+
     # Find the Nuxt state payload script
     scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.DOTALL)
     payload_raw = None
