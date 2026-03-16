@@ -1,5 +1,6 @@
 import re
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,8 @@ def parse_rooms(rooms_str: str) -> int:
         return 0
 
 
-from datetime import datetime, timedelta
-
-
 def _parse_date(date_str: str) -> datetime | None:
-    """Attempt to parse an ISO‑like date string; return None on failure."""
+    """Attempt to parse an ISO-like date string; return None on failure."""
     try:
         return datetime.fromisoformat(date_str)
     except Exception:
@@ -43,7 +41,7 @@ def matches_filters(listing: dict, filters: dict) -> bool:
     The filters dict may contain keys:
     ``price_min`` ``price_max`` ``min_bedrooms`` ``keywords``
     ``publication_days`` ``energy_labels``
-    (areas are applied when building the URL).
+    (areas and publication_days are also applied upstream at scrape time).
     """
     try:
         price = parse_price(listing.get('price', ''))
@@ -54,12 +52,14 @@ def matches_filters(listing: dict, filters: dict) -> bool:
         if rooms < filters.get('min_bedrooms', 0):
             return False
 
-        # energy label filter if listing contains it
         labels = filters.get('energy_labels') or []
         if labels:
             if listing.get('energy_label') not in labels:
                 return False
 
+        # publication_date is currently always None (Funda requires login to
+        # expose it). The days_since filter is applied upstream via FundaScraper,
+        # so this block is a no-op for now but kept for future compatibility.
         if filters.get('publication_days'):
             pub = listing.get('publication_date')
             if pub:
