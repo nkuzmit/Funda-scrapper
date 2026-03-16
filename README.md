@@ -4,7 +4,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 
 ## Features
 
-- Fetches listings via the [funda-scraper](https://github.com/whchien/funda-scraper) library (structured data, no fragile HTML parsing)
+- Fetches listings by extracting the Nuxt server-side payload from funda.nl (structured JSON data, no fragile HTML parsing)
 - Filters by price, bedrooms, area, energy label, and keywords
 - Notifications via **Telegram**, **Email (SMTP/HTML)**, and **WhatsApp (CallMeBot)**
 - Persists seen listings in SQLite to avoid duplicate notifications
@@ -119,7 +119,7 @@ filters:
   keywords: []                  # match any keyword in listing title; empty = no filter
 
 schedule:
-  hours: ["7:00", "9:00", "12:00", "15:00", "16:15", "18:00"]
+  hours: ["7:00", "9:00", "12:00", "15:00", "16:00", "18:00"]
 ```
 
 **Area slugs** follow the funda.nl URL pattern — the part after `funda.nl/`. For example, the Utrecht neighbourhood Oudwijk is `utrecht/oudwijk`.
@@ -133,7 +133,7 @@ schedule:
 ```
 main.py                  Entry point — wires config, notifiers, and scheduler
 src/funda_bot/
-  scraper.py             Fetches listings via funda-scraper; manages SQLite seen-state
+  scraper.py             Extracts listings from Funda Nuxt payload; manages SQLite seen-state
   filters.py             Post-scrape filter matching (price, rooms, labels, keywords)
   notifier.py            Notifier protocol + Telegram / Email / WhatsApp implementations
   scheduler.py           APScheduler wrapper; runs callback at configured daily times
@@ -161,5 +161,5 @@ pytest
 ## Notes
 
 - **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service.
-- `publication_date` is not currently returned by funda-scraper (Funda requires login to expose it). The `publication_days` filter is applied at fetch time via the library's `days_since` parameter instead.
+- `publication_date` is extracted directly from the Nuxt payload and used for the `publication_days` filter.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
