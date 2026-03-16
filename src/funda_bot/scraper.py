@@ -80,7 +80,7 @@ def scrape_funda(filters: dict) -> list[dict]:
             scraper = FundaScraper(
                 area=area,
                 want_to='buy',
-                find_sold=False,
+                find_past=False,
                 page_start=1,
                 n_pages=1,
                 min_price=min_price,
