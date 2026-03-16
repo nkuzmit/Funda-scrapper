@@ -1,6 +1,6 @@
 import re
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def matches_filters(listing: dict, filters: dict) -> bool:
             if pub:
                 pub_date = _parse_date(pub)
                 if pub_date:
-                    cutoff = datetime.now() - timedelta(days=filters['publication_days'])
+                    cutoff = datetime.now(timezone.utc) - timedelta(days=filters['publication_days'])
                     if pub_date < cutoff:
                         return False
 
