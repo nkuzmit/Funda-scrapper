@@ -5,7 +5,7 @@ def test_schedule_scrapes_parsing(monkeypatch):
     called = []
 
     class DummyScheduler:
-        def __init__(self):
+        def __init__(self, **kwargs):  # accepts timezone kwarg
             pass
 
         def add_job(self, callback, trigger, hour, minute=0):

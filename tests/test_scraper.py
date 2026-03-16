@@ -1,81 +1,88 @@
-import json
-import os
 import pytest
-from types import SimpleNamespace
-
-from funda_bot.scraper import scrape_funda, load_seen, save_seen, get_new_listings, _build_query
-
-SAMPLE_HTML = """<html><body>
-<div class="search-result__item">
-    <h2>Test House</h2>
-    <span class="search-result-price">€ 123.456</span>
-    <span class="search-result-location">Amsterdam</span>
-    <span class="search-result-size">80 m²</span>
-    <span class="search-result-rooms">3</span>
-    <a href="/detail/123/">link</a>
-    <img src="https://example.com/thumb.jpg"/>
-</div>
-</body></html>"""
-
-class DummyResponse:
-    def __init__(self, text):
-        self.text = text
-    def raise_for_status(self):
-        pass
+from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _df_to_listings
 
 
-def test_build_query():
-    filters = {
-        'areas': ['utrecht/tuinwijk-oost', 'utrecht/wittevrouwen'],
-        'price_min': 55000,
-        'price_max': None,
-        'publication_days': 3,
-        'energy_labels': ['A+++', 'A++']
-    }
-    query = _build_query(filters)
-    assert 'selected_area' in query
-    assert 'price' in query
-    assert 'publication_date' in query
-    assert 'energy_label' in query
-
-
-def test_scrape_funda(monkeypatch):
-    def fake_get(url, headers=None):
-        return DummyResponse(SAMPLE_HTML)
-    monkeypatch.setattr('requests.get', fake_get)
-
-    listings = scrape_funda({'areas': ['amsterdam']})
-    assert len(listings) == 1
-    item = listings[0]
-    assert item['title'] == 'Test House'
-    assert item['price'] == '€ 123.456'
-    assert 'amsterdam' in item['location'].lower()
-    assert item['url'].endswith('/detail/123/')
-    assert item['thumbnail'] == 'https://example.com/thumb.jpg'
-
+# ---------------------------------------------------------------------------
+# SQLite state helpers
+# ---------------------------------------------------------------------------
 
 def test_seen_storage(tmp_path, monkeypatch):
-    # use a temp directory to avoid polluting repo
-    monkeypatch.chdir(tmp_path)
+    """load_seen returns empty set initially; mark_seen persists a URL."""
+    monkeypatch.setattr('funda_bot.scraper._DB_PATH', tmp_path / 'seen.db')
     seen = load_seen()
     assert seen == set()
-    save_seen({'foo', 'bar'})
-    with open('seen_listings.json') as f:
-        data = json.load(f)
-    assert set(data) == {'foo', 'bar'}
+
+    mark_seen('https://funda.nl/1')
+    seen = load_seen()
+    assert 'https://funda.nl/1' in seen
 
 
-def test_get_new_listings(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    # stub scrape_funda to return two entries
-    def fake_scrape(filters):
-        return [
-            {'url': 'a', 'title': 'A', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None},
-            {'url': 'b', 'title': 'B', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None}
-        ]
-    monkeypatch.setattr('funda_bot.scraper.scrape_funda', fake_scrape)
-    new = get_new_listings({'areas': ['x']})
+def test_mark_seen_idempotent(tmp_path, monkeypatch):
+    """Calling mark_seen twice with the same URL does not raise."""
+    monkeypatch.setattr('funda_bot.scraper._DB_PATH', tmp_path / 'seen.db')
+    mark_seen('https://funda.nl/x')
+    mark_seen('https://funda.nl/x')  # should not raise
+    assert len(load_seen()) == 1
+
+
+# ---------------------------------------------------------------------------
+# DataFrame normalisation
+# ---------------------------------------------------------------------------
+
+def test_df_to_listings_basic():
+    """_df_to_listings maps DataFrame rows to our listing dict format."""
+    import pandas as pd
+    df = pd.DataFrame([{
+        'url': 'https://funda.nl/detail/1/',
+        'address': 'Teststraat 1, Utrecht',
+        'city': 'Utrecht',
+        'price': '450000',
+        'living_area': '90',
+        'num_of_rooms': '4',
+        'energy_label': 'A',
+    }])
+    listings = _df_to_listings(df)
+    assert len(listings) == 1
+    item = listings[0]
+    assert item['url'] == 'https://funda.nl/detail/1/'
+    assert item['title'] == 'Teststraat 1, Utrecht'
+    assert item['price'] == '450000'
+    assert item['rooms'] == '4'
+    assert item['energy_label'] == 'A'
+
+
+def test_df_to_listings_skips_empty_url():
+    """Rows with missing or nan URLs are skipped."""
+    import pandas as pd
+    df = pd.DataFrame([
+        {'url': 'nan', 'address': 'A', 'city': 'X', 'price': '1', 'living_area': '1', 'num_of_rooms': '1', 'energy_label': ''},
+        {'url': 'https://funda.nl/detail/2/', 'address': 'B', 'city': 'Y', 'price': '2', 'living_area': '2', 'num_of_rooms': '2', 'energy_label': 'B'},
+    ])
+    listings = _df_to_listings(df)
+    assert len(listings) == 1
+    assert listings[0]['url'] == 'https://funda.nl/detail/2/'
+
+
+# ---------------------------------------------------------------------------
+# get_new_listings
+# ---------------------------------------------------------------------------
+
+def test_get_new_listings_filters_seen(tmp_path, monkeypatch):
+    """get_new_listings excludes URLs already in the seen database."""
+    monkeypatch.setattr('funda_bot.scraper._DB_PATH', tmp_path / 'seen.db')
+
+    fake = [
+        {'url': 'https://funda.nl/1', 'title': 'A', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None, 'energy_label': None, 'publication_date': None},
+        {'url': 'https://funda.nl/2', 'title': 'B', 'price': '', 'location': '', 'size': '', 'rooms': '', 'thumbnail': None, 'energy_label': None, 'publication_date': None},
+    ]
+    monkeypatch.setattr('funda_bot.scraper.scrape_funda', lambda f: fake)
+
+    new = get_new_listings({})
     assert len(new) == 2
-    # second call should return empty (urls are saved)
-    new2 = get_new_listings({'areas': ['x']})
-    assert new2 == []
+
+    # manually mark one as seen (simulating a delivered notification)
+    mark_seen('https://funda.nl/1')
+
+    new2 = get_new_listings({})
+    assert len(new2) == 1
+    assert new2[0]['url'] == 'https://funda.nl/2'
