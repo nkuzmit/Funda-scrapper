@@ -44,12 +44,16 @@ def matches_filters(listing: dict, filters: dict) -> bool:
     (areas and publication_days are also applied upstream at scrape time).
     """
     try:
-        price = parse_price(listing.get('price', ''))
-        if price < filters.get('price_min', 0) or price > filters.get('price_max', float('inf')):
+        raw_price = listing.get('price', 0)
+        price = raw_price if isinstance(raw_price, int) else parse_price(str(raw_price))
+        price_min = filters.get('price_min') or 0
+        price_max = filters.get('price_max') or float('inf')
+        if price < price_min or price > price_max:
             return False
 
-        rooms = parse_rooms(listing.get('rooms', ''))
-        if rooms < filters.get('min_bedrooms', 0):
+        raw_rooms = listing.get('rooms', 0)
+        rooms = raw_rooms if isinstance(raw_rooms, int) else parse_rooms(str(raw_rooms))
+        if rooms < (filters.get('min_bedrooms') or 0):
             return False
 
         labels = filters.get('energy_labels') or []
