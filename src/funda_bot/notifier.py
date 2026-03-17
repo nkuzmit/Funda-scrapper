@@ -12,6 +12,7 @@ Adding a new channel:
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import smtplib
@@ -72,11 +73,15 @@ def _format_plain(listing: dict) -> str:
 
 
 def _format_html(listing: dict) -> str:
-    thumbnail = listing.get('thumbnail')
-    img_tag = f'<img src="{thumbnail}" style="max-width:100%;border-radius:8px;margin-bottom:12px;"><br>' if thumbnail else ''
+    photos = listing.get('photos') or []
+    imgs = ''.join(
+        f'<img src="{p}" style="width:48%;margin:1%;border-radius:6px;">'
+        for p in photos
+    )
+    photo_block = f'<div style="margin-bottom:12px;">{imgs}</div>' if imgs else ''
     return f"""
 <html><body style="font-family:sans-serif;max-width:600px;">
-{img_tag}
+{photo_block}
 <h2>🏠 {listing.get('title')}</h2>
 <table cellpadding="6">
   <tr><td><b>Price</b></td><td>{_fmt_price(listing.get('price'))}</td></tr>
@@ -111,10 +116,19 @@ class TelegramNotifier:
 
     def notify(self, listing: dict) -> bool:
         message = _format_plain(listing)
-        photo = listing.get('thumbnail')
-        if photo:
+        photos = listing.get('photos') or []
+
+        if len(photos) > 1:
+            # Send album: caption goes on the first photo only
+            media = [
+                {'type': 'photo', 'media': url, **({"caption": message} if i == 0 else {})}
+                for i, url in enumerate(photos)
+            ]
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMediaGroup"
+            data = {'chat_id': self.chat_id, 'media': json.dumps(media)}
+        elif photos:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendPhoto"
-            data = {'chat_id': self.chat_id, 'caption': message, 'photo': photo}
+            data = {'chat_id': self.chat_id, 'caption': message, 'photo': photos[0]}
         else:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}

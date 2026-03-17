@@ -206,14 +206,17 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
             fa = r(obj.get('floor_area'))
             size = r(fa[0]) if isinstance(fa, list) else fa
 
-            # thumbnail
-            thumb_ids = r(obj.get('thumbnail_id'))
-            thumb_id = r(thumb_ids[0]) if isinstance(thumb_ids, list) else thumb_ids
-            if isinstance(thumb_id, int):
-                s = str(thumb_id)
-                thumbnail = f'{_THUMBNAIL_BASE}/{s[:-6]}/{s[-6:-3]}/{s[-3:]}_360x240.jpg'
-            else:
-                thumbnail = None
+            # photos — up to 6, valentina_media only (tiara-media requires auth)
+            photo_ids_raw = r(obj.get('photo_image_id'))
+            photos: list[str] = []
+            if isinstance(photo_ids_raw, list):
+                for pid in photo_ids_raw:
+                    path = r(pid)
+                    if isinstance(path, str) and path.startswith('valentina_media/'):
+                        photos.append(f'https://cloud.funda.nl/{path}')
+                    if len(photos) == 6:
+                        break
+            thumbnail = photos[0] if photos else None
 
             # url
             relative_url = r(obj.get('object_detail_page_relative_url'))
@@ -230,6 +233,7 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
                 'publication_date': r(obj.get('publish_date')),
                 'url':              full_url,
                 'thumbnail':        thumbnail,
+                'photos':           photos,
             })
         except Exception as e:
             logger.debug(f'Skipping listing due to parse error: {e}')
