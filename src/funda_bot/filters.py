@@ -1,30 +1,7 @@
-import re
 import logging
 from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
-
-
-def parse_price(price_str: str) -> int:
-    """Parse a price string to an integer (e.g. '€ 529.000 k.k.' -> 529000).
-
-    Non-numeric characters are stripped. If parsing fails, return 0.
-    """
-    try:
-        cleaned = re.sub(r'[€\s\.k\.]+', '', price_str)
-        return int(cleaned)
-    except Exception:
-        logger.debug(f"Failed to parse price from '{price_str}'")
-        return 0
-
-
-def parse_rooms(rooms_str: str) -> int:
-    """Extract the first integer from a rooms string; returns 0 on failure."""
-    try:
-        return int(re.search(r'\d+', rooms_str).group())
-    except Exception:
-        logger.debug(f"Failed to parse rooms from '{rooms_str}'")
-        return 0
 
 
 def _parse_date(date_str: str) -> datetime | None:
@@ -44,16 +21,14 @@ def matches_filters(listing: dict, filters: dict) -> bool:
     (areas and publication_days are also applied upstream at scrape time).
     """
     try:
-        raw_price = listing.get('price', 0)
-        price = raw_price if isinstance(raw_price, int) else parse_price(str(raw_price))
+        price = listing.get('price') or 0
         price_min = filters.get('price_min') or 0
         price_max = filters.get('price_max') or float('inf')
         if price < price_min or price > price_max:
             return False
 
-        raw_rooms = listing.get('rooms', 0)
-        rooms = raw_rooms if isinstance(raw_rooms, int) else parse_rooms(str(raw_rooms))
-        if rooms < (filters.get('min_bedrooms') or 0):
+        bedrooms = listing.get('bedrooms') or 0
+        if bedrooms < (filters.get('min_bedrooms') or 0):
             return False
 
         labels = filters.get('energy_labels') or []

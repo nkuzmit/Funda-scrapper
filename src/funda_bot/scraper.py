@@ -221,11 +221,11 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
 
             results.append({
                 'title':            f'{street} {number}{suffix}'.strip(),
-                'price':            str(price_val) if price_val is not None else 'Unknown',
+                'price':            price_val,
                 'location':         f'{postcode} {city}'.strip(),
-                'size':             str(size) if size is not None else 'Unknown',
-                'rooms':            str(r(obj.get('number_of_rooms', ''))),
-                'bedrooms':         str(r(obj.get('number_of_bedrooms', ''))),
+                'size':             size,
+                'rooms':            r(obj.get('number_of_rooms')),
+                'bedrooms':         r(obj.get('number_of_bedrooms')),
                 'energy_label':     r(obj.get('energy_label')),
                 'publication_date': r(obj.get('publish_date')),
                 'url':              full_url,

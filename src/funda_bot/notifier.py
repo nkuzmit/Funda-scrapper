@@ -32,14 +32,22 @@ _RETRY_DELAY = 3  # seconds
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _post_with_retry(url: str, data: dict | None = None, params: dict | None = None) -> requests.Response | None:
-    """POST (or GET if params-only) with up to _MAX_RETRIES retries."""
+def _fmt_price(price) -> str:
+    """Format a raw integer price as '€ 875,000'."""
+    try:
+        return f"€ {int(price):,}".replace(',', '.')
+    except (TypeError, ValueError):
+        return str(price) if price is not None else 'Unknown'
+
+
+def _request_with_retry(url: str, data: dict | None = None, params: dict | None = None) -> requests.Response | None:
+    """HTTP request with up to _MAX_RETRIES retries. Uses POST when data is provided, GET otherwise."""
     for attempt in range(1, _MAX_RETRIES + 2):
         try:
-            if params and not data:
-                response = requests.get(url, params=params, timeout=10)
-            else:
+            if data:
                 response = requests.post(url, data=data, timeout=10)
+            else:
+                response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             return response
         except Exception as e:
@@ -54,26 +62,30 @@ def _post_with_retry(url: str, data: dict | None = None, params: dict | None = N
 def _format_plain(listing: dict) -> str:
     return (
         f"🏠 {listing.get('title')}\n"
-        f"💰 {listing.get('price')}\n"
+        f"💰 {_fmt_price(listing.get('price'))}\n"
         f"📍 {listing.get('location')}\n"
-        f"📐 {listing.get('size')}\n"
-        f"🛏️  {listing.get('rooms')}\n"
+        f"📐 {listing.get('size')} m²\n"
+        f"🛏️  {listing.get('bedrooms')} bedrooms / {listing.get('rooms')} rooms\n"
+        f"⚡ {listing.get('energy_label', 'N/A')}\n"
         f"🔗 {listing.get('url')}"
     )
 
 
 def _format_html(listing: dict) -> str:
+    thumbnail = listing.get('thumbnail')
+    img_tag = f'<img src="{thumbnail}" style="max-width:100%;border-radius:8px;margin-bottom:12px;"><br>' if thumbnail else ''
     return f"""
-<html><body>
+<html><body style="font-family:sans-serif;max-width:600px;">
+{img_tag}
 <h2>🏠 {listing.get('title')}</h2>
-<table>
-  <tr><td><b>Price</b></td><td>{listing.get('price')}</td></tr>
+<table cellpadding="6">
+  <tr><td><b>Price</b></td><td>{_fmt_price(listing.get('price'))}</td></tr>
   <tr><td><b>Location</b></td><td>{listing.get('location')}</td></tr>
-  <tr><td><b>Size</b></td><td>{listing.get('size')}</td></tr>
-  <tr><td><b>Rooms</b></td><td>{listing.get('rooms')}</td></tr>
+  <tr><td><b>Size</b></td><td>{listing.get('size')} m²</td></tr>
+  <tr><td><b>Rooms</b></td><td>{listing.get('bedrooms')} bedrooms / {listing.get('rooms')} total</td></tr>
   <tr><td><b>Energy label</b></td><td>{listing.get('energy_label', 'N/A')}</td></tr>
 </table>
-<p><a href="{listing.get('url')}">View on Funda</a></p>
+<p><a href="{listing.get('url')}">View on Funda →</a></p>
 </body></html>
 """
 
@@ -106,7 +118,7 @@ class TelegramNotifier:
         else:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}
-        return _post_with_retry(url, data) is not None
+        return _request_with_retry(url, data) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -122,23 +134,28 @@ class EmailNotifier:
         self.smtp_port = smtp_port
 
     def notify(self, listing: dict) -> bool:
-        try:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"🏠 New listing: {listing.get('title')} — {listing.get('price')}"
-            msg['From'] = self.sender
-            msg['To'] = self.recipient
-            msg.attach(MIMEText(_format_plain(listing), 'plain'))
-            msg.attach(MIMEText(_format_html(listing), 'html'))
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"🏠 New listing: {listing.get('title')} — {_fmt_price(listing.get('price'))}"
+        msg['From'] = self.sender
+        msg['To'] = self.recipient
+        msg.attach(MIMEText(_format_plain(listing), 'plain'))
+        msg.attach(MIMEText(_format_html(listing), 'html'))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
-                server.ehlo()
-                server.starttls()
-                server.login(self.sender, self.password)
-                server.sendmail(self.sender, self.recipient, msg.as_string())
-            return True
-        except Exception as e:
-            logger.error(f"Email send failed: {e}")
-            return False
+        for attempt in range(1, _MAX_RETRIES + 2):
+            try:
+                with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.login(self.sender, self.password)
+                    server.sendmail(self.sender, self.recipient, msg.as_string())
+                return True
+            except Exception as e:
+                if attempt <= _MAX_RETRIES:
+                    logger.warning(f"Email attempt {attempt} failed ({e}), retrying in {_RETRY_DELAY}s...")
+                    time.sleep(_RETRY_DELAY)
+                else:
+                    logger.error(f"Email send failed after {_MAX_RETRIES + 1} attempts: {e}")
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +175,7 @@ class WhatsAppNotifier:
             'text': _format_plain(listing),
             'apikey': self.apikey,
         }
-        return _post_with_retry(self._API_URL, params=params) is not None
+        return _request_with_retry(self._API_URL, params=params) is not None
 
 
 # ---------------------------------------------------------------------------
