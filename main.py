@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
 
 import logging
+import logging.handlers
 import yaml
 from dotenv import load_dotenv
 
@@ -19,7 +20,9 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(name)s: %(message)s',
     handlers=[
-        logging.FileHandler('main.log'),
+        logging.handlers.RotatingFileHandler(
+            'main.log', maxBytes=5 * 1024 * 1024, backupCount=3
+        ),
         logging.StreamHandler(),
     ],
 )
