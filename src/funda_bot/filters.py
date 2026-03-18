@@ -43,6 +43,8 @@ def matches_filters(listing: dict, filters: dict) -> bool:
             if pub:
                 pub_date = _parse_date(pub)
                 if pub_date:
+                    if pub_date.tzinfo is None:
+                        pub_date = pub_date.replace(tzinfo=timezone.utc)
                     cutoff = datetime.now(timezone.utc) - timedelta(days=filters['publication_days'])
                     if pub_date < cutoff:
                         return False

@@ -57,3 +57,14 @@ def test_matches_filters_no_date_passes_through():
     filters = {'price_min': 0, 'price_max': 200000, 'min_bedrooms': 0,
                'keywords': [], 'publication_days': 1}
     assert matches_filters(listing, filters)
+
+
+def test_matches_filters_naive_publication_date():
+    """Naive datetime strings from the Funda payload are handled without TypeError."""
+    listing = {
+        'price': 100000, 'bedrooms': 1, 'title': 'A',
+        'publication_date': datetime.now().isoformat(),  # naive — no timezone
+    }
+    filters = {'price_min': 0, 'price_max': 200000, 'min_bedrooms': 0,
+               'keywords': [], 'publication_days': 3}
+    assert matches_filters(listing, filters)
