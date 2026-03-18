@@ -36,7 +36,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-_FUNDA_BASE = 'https://www.funda.nl/en/zoeken/koop'
+_FUNDA_BASE = 'https://www.funda.nl/zoeken/koop'
 _HEADERS = {
     'User-Agent': 'facebookexternalhit/1.1',
 }
@@ -89,8 +89,12 @@ def _build_url(filters: dict, page: int = 1) -> str:
 
     energy = filters.get('energy_labels') or []
     if energy:
-        quoted = ','.join(f'"{e}"' for e in energy)
+        quoted = ','.join(f'"{e.replace("+", "%2B")}"' for e in energy)
         parts.append(f'energy_label=[{quoted}]')
+
+    pub_days = filters.get('publication_days')
+    if pub_days:
+        parts.append(f'publication_date="{pub_days}"')
 
     parts.append('sort="date_down"')
 
