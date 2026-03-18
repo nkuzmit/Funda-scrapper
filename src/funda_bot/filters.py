@@ -28,8 +28,8 @@ def matches_filters(listing: dict, filters: dict) -> bool:
             if price < price_min or price > price_max:
                 return False
 
-        bedrooms = listing.get('bedrooms') or 0
-        if bedrooms < (filters.get('min_bedrooms') or 0):
+        bedrooms = listing.get('bedrooms')
+        if bedrooms is not None and bedrooms < (filters.get('min_bedrooms') or 0):
             return False
 
         labels = filters.get('energy_labels') or []
