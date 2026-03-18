@@ -45,7 +45,7 @@ def scrape_and_notify(config: dict, notifiers: list):
     """Scrape for new listings and dispatch to all active notification channels."""
     try:
         filters = config['filters']
-        listings = get_new_listings(filters, n_pages=2)
+        listings = get_new_listings(filters)
         logger.info(f"Found {len(listings)} new listings")
 
         for listing in listings:

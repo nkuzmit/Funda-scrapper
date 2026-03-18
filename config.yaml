@@ -22,7 +22,7 @@ filters:
     - "A"
     - "B"
     - "C"
-    - "A+++++"          
+    - "A+++++"
   min_bedrooms: 1            # null = no lower bound
   keywords: []               # only listings whose description contains at least one of these keywords; empty list means no filtering
 
