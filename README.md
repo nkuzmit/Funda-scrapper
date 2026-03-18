@@ -7,6 +7,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 - Fetches listings by extracting the Nuxt server-side payload from funda.nl (structured JSON data, no fragile HTML parsing)
 - Filters by price, bedrooms, area, energy label, and keywords
 - Notifications via **Telegram**, **Email (SMTP/HTML)**, and **WhatsApp (CallMeBot)**
+- Sends up to 6 listing photos as a Telegram album per notification
 - Persists seen listings in SQLite to avoid duplicate notifications
 - Listings are only marked as seen after confirmed delivery — failed sends are retried on the next run
 - Scheduled daily runs at configurable times (Europe/Amsterdam timezone)
@@ -86,7 +87,7 @@ For Gmail, generate an **App Password** (requires 2FA enabled):
 
 Use the app password as `EMAIL_PASSWORD` — not your regular account password.
 
-To use a different provider, you can extend `EmailNotifier` in `notifier.py` with a custom `smtp_host` and `smtp_port`.
+To use a different provider, pass `smtp_host` and `smtp_port` when constructing `EmailNotifier` in `notifier.py` (defaults: `smtp.gmail.com`, `587`).
 
 ### WhatsApp (CallMeBot)
 

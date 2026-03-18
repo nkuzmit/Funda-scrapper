@@ -4,12 +4,13 @@ from funda_bot.notifier import TelegramNotifier, EmailNotifier, WhatsAppNotifier
 
 LISTING = {
     'title': 'Teststraat 1',
-    'price': '€ 450.000',
+    'price': 450000,
     'location': 'Utrecht',
-    'size': '90 m²',
-    'rooms': '4',
+    'size': 90,
+    'rooms': 4,
+    'bedrooms': 3,
     'url': 'https://funda.nl/detail/1/',
-    'thumbnail': None,
+    'photos': [],
     'energy_label': 'A',
 }
 
@@ -48,7 +49,7 @@ def test_telegram_notify_with_photo(monkeypatch):
         return R()
 
     monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
-    listing_with_photo = {**LISTING, 'thumbnail': 'https://example.com/photo.jpg'}
+    listing_with_photo = {**LISTING, 'photos': ['https://example.com/photo.jpg']}
     notifier = TelegramNotifier('token', 'chat123')
     result = notifier.notify(listing_with_photo)
 

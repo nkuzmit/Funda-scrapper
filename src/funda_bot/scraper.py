@@ -37,7 +37,6 @@ import requests
 logger = logging.getLogger(__name__)
 
 _FUNDA_BASE = 'https://www.funda.nl/en/zoeken/koop'
-_THUMBNAIL_BASE = 'https://cloud.funda.nl/valentina_media'
 _HEADERS = {
     'User-Agent': 'facebookexternalhit/1.1',
 }
