@@ -92,10 +92,6 @@ def _build_url(filters: dict, page: int = 1) -> str:
         quoted = ','.join(f'"{e}"' for e in energy)
         parts.append(f'energy_label=[{quoted}]')
 
-    pub_days = filters.get('publication_days')
-    if pub_days:
-        parts.append(f'publication_date="{pub_days}"')
-
     parts.append('sort="date_down"')
 
     if page > 1:
