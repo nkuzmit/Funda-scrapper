@@ -88,9 +88,6 @@ def _build_url(filters: dict, page: int = 1) -> str:
     if min_p is not None or max_p is not None:
         parts.append(f'price="{min_p or ""}-{max_p or ""}"')
 
-    if filters.get('publication_days') is not None:
-        parts.append(f'publication_date={filters["publication_days"]}')
-
     energy = filters.get('energy_labels') or []
     if energy:
         quoted = ','.join(f'"{e}"' for e in energy)
