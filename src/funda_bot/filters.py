@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,8 @@ def matches_filters(listing: dict, filters: dict) -> bool:
             if pub:
                 pub_date = _parse_date(pub)
                 if pub_date:
-                    if pub_date.tzinfo is None:
-                        pub_date = pub_date.replace(tzinfo=timezone.utc)
-                    cutoff = datetime.now(timezone.utc) - timedelta(days=filters['publication_days'])
-                    if pub_date < cutoff:
+                    cutoff = (datetime.now() - timedelta(days=filters['publication_days'])).date()
+                    if pub_date.date() < cutoff:
                         return False
 
         kw_list = filters.get('keywords') or []
