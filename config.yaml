@@ -13,7 +13,7 @@ filters:
     - "utrecht/oudwijk"
   price_min: 550000          # null = no lower bound
   price_max: null            # null = no upper bound
-  publication_days: 1        # only listings published within this many days
+  publication_days: 3        # only listings published within this many days
   energy_labels:             # only listings with these energy labels; empty list means no filtering
     - "A++++"
     - "A+++"
