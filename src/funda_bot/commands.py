@@ -177,7 +177,7 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, f"Area removed: {slug}")
 
     else:
-        _send(bot_token, chat_id, f"Unknown command. Send /help for the full list.")
+        _send(bot_token, chat_id, "Unknown command. Send /help for the full list.")
 
 
 # ---------------------------------------------------------------------------
@@ -190,9 +190,17 @@ def poll_commands(bot_token: str, chat_id: str, config: dict, scrape_fn):
     Dispatches any command from the authorised chat_id to handle_command().
     Ignores all other senders. Retries automatically on network errors.
     """
-    offset = 0
     url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
     logger.info("Telegram command polling started")
+
+    # Drain any pending updates accumulated while the bot was offline
+    # so old commands (including /stop or /restart) are not replayed on startup
+    try:
+        r = requests.get(url, params={'timeout': 0}, timeout=5)
+        updates = r.json().get('result', [])
+        offset = updates[-1]['update_id'] + 1 if updates else 0
+    except Exception:
+        offset = 0
 
     while True:
         try:

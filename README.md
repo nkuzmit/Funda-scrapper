@@ -11,6 +11,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 - Persists seen listings in SQLite to avoid duplicate notifications
 - Listings are only marked as seen after confirmed delivery — failed sends are retried on the next run
 - Scheduled daily runs at configurable times (Europe/Amsterdam timezone)
+- Filters configurable live via Telegram commands — no restart needed
 
 ## Requirements
 
@@ -129,6 +130,26 @@ schedule:
 
 ---
 
+## Telegram Commands
+
+When Telegram is configured, the bot accepts commands directly in the chat:
+
+| Command | Description |
+|---------|-------------|
+| `/filters` | Show current active filters |
+| `/run` | Trigger an immediate scrape |
+| `/setprice 500000 null` | Set price range (`null` = no bound) |
+| `/setrooms 2` | Set minimum bedrooms |
+| `/setlabel A B C` | Set energy labels |
+| `/setdate 3` | Set publication days (max 10) |
+| `/addarea utrecht/oudwijk` | Add an area slug |
+| `/removearea utrecht/oudwijk` | Remove an area slug |
+| `/help` | List all commands |
+
+Filter changes take effect on the next scheduled run and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
+
+---
+
 ## Project Structure
 
 ```
@@ -138,6 +159,7 @@ src/funda_bot/
   filters.py             Post-scrape filter matching (price, rooms, labels, keywords)
   notifier.py            Notifier protocol + Telegram / Email / WhatsApp implementations
   scheduler.py           APScheduler wrapper; runs callback at configured daily times
+  commands.py            Telegram command handler + polling loop for live config changes
 config.yaml              Non-sensitive configuration (filters, schedule, active channels)
 .env                     Secrets (credentials) — gitignored, never committed
 requirements.txt         Runtime dependencies
