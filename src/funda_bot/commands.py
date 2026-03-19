@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
 
+_LABEL_ORDER = ['A+++++', 'A++++', 'A+++', 'A++', 'A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
+
+
 HELP_TEXT = (
     "Funda Bot — available commands:\n\n"
     "/filters — show current filters\n"
@@ -74,16 +77,19 @@ def _fmt_filters(filters: dict) -> str:
     price_str += ' — '
     price_str += f"€{price_max:,}".replace(',', '.') if price_max else 'no max'
 
-    labels = filters.get('energy_labels') or []
+    labels = sorted(
+        filters.get('energy_labels') or [],
+        key=lambda l: _LABEL_ORDER.index(l) if l in _LABEL_ORDER else 99,
+    )
     labels_str = ' '.join(labels) if labels else '(none)'
 
     return (
-        f"Areas ({len(areas)}):\n{area_lines}\n\n"
-        f"Price: {price_str}\n"
-        f"Min bedrooms: {filters.get('min_bedrooms') or 'any'}\n"
-        f"Energy labels: {labels_str}\n"
-        f"Publication: last {filters.get('publication_days')} days\n"
-        f"Keywords: {', '.join(filters.get('keywords') or []) or '(none)'}"
+        f"📍 Areas ({len(areas)}):\n{area_lines}\n\n"
+        f"💰 Price: {price_str}\n"
+        f"🛏️  Min bedrooms: {filters.get('min_bedrooms') or 'any'}\n"
+        f"⚡ Energy labels: {labels_str}\n"
+        f"📅 Publication: last {filters.get('publication_days')} days\n"
+        f"🔍 Keywords: {', '.join(filters.get('keywords') or []) or '(none)'}"
     )
 
 
@@ -108,7 +114,7 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         _send(bot_token, chat_id, "Running scrape...")
         delivered = scrape_fn()
         if delivered == 0:
-            _send(bot_token, chat_id, "No unseen listings matching your filters.")
+            _send(bot_token, chat_id, "All caught up — no new listings found.")
 
     elif cmd == '/setprice':
         if len(args) < 2:
