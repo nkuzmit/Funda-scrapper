@@ -79,6 +79,8 @@ def main():
         return
 
     logger.info(f"Starting Funda Scraper Bot ({len(notifiers)} channel(s) active)")
+    logger.info("Running initial scrape on startup...")
+    scrape_and_notify(config, notifiers)
     schedule_scrapes(
         config['schedule']['hours'],
         lambda: scrape_and_notify(config, notifiers),

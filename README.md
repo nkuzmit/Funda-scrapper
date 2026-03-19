@@ -159,9 +159,49 @@ pytest
 
 ---
 
+## Deployment (Linux / Hetzner)
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/nkuzmit/Funda-scrapper.git
+cd Funda-Scrapper
+python3 -m venv venv
+venv/bin/pip install -r requirements.txt
+```
+
+### 2. Create `.env` with credentials
+
+```bash
+cp .env.example .env
+# fill in TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, etc.
+```
+
+### 3. Install systemd service
+
+```bash
+cp funda-bot.service /etc/systemd/system/
+# edit WorkingDirectory and ExecStart paths if your install path differs
+systemctl enable --now funda-bot
+systemctl status funda-bot
+```
+
+### Useful commands
+
+```bash
+systemctl status funda-bot                            # check status
+journalctl -u funda-bot -f                            # live system logs
+tail -f main.log                                      # app logs
+systemctl restart funda-bot                           # restart after config change
+git pull origin main && systemctl restart funda-bot   # deploy update
+```
+
+---
+
 ## Notes
 
-- **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service.
+- **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service. The bot is designed for fast new-listing alerts, not as a full Funda browsing replacement.
 - The bot uses the Dutch-language Funda endpoint (`/zoeken/koop`). The English endpoint (`/en/zoeken/koop`) excludes same-day listings even with `publication_date` set, so the Dutch endpoint is required for timely alerts.
-- `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged.
+- `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged. Recommended maximum is **5 days**; do not exceed 10.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
+- On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed.
