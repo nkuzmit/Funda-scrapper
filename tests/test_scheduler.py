@@ -14,7 +14,7 @@ def test_schedule_scrapes_parsing(monkeypatch):
         def start(self):
             called.append("started")
 
-    monkeypatch.setattr(scheduler, "BlockingScheduler", DummyScheduler)
+    monkeypatch.setattr(scheduler, "BackgroundScheduler", DummyScheduler)
 
     def noop():
         pass

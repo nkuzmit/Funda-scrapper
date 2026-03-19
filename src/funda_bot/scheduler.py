@@ -1,5 +1,5 @@
 import logging
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def schedule_scrapes(hours: list, callback):
     to minute 0.  All times are interpreted in Europe/Amsterdam timezone.
     """
     try:
-        scheduler = BlockingScheduler(timezone=_TIMEZONE)
+        scheduler = BackgroundScheduler(timezone=_TIMEZONE)
         for entry in hours:
             try:
                 if isinstance(entry, str) and ':' in entry:

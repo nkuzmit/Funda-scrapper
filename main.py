@@ -4,6 +4,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
 
 import logging
 import logging.handlers
+import os
+import time
 import yaml
 from dotenv import load_dotenv
 
@@ -11,6 +13,7 @@ from funda_bot.scraper import get_new_listings, mark_seen
 from funda_bot.notifier import build_notifiers
 from funda_bot.scheduler import schedule_scrapes
 from funda_bot.filters import matches_filters
+from funda_bot.commands import poll_commands, _send, HELP_TEXT
 
 load_dotenv()
 
@@ -41,13 +44,17 @@ def load_config():
         raise
 
 
-def scrape_and_notify(config: dict, notifiers: list):
-    """Scrape for new listings and dispatch to all active notification channels."""
+def scrape_and_notify(config: dict, notifiers: list) -> int:
+    """Scrape for new listings and dispatch to all active notification channels.
+
+    Returns the number of successfully delivered listings.
+    """
     try:
         filters = config['filters']
         listings = get_new_listings(filters)
         logger.info(f"Found {len(listings)} new listings")
 
+        delivered_count = 0
         for listing in listings:
             if not matches_filters(listing, filters):
                 continue
@@ -63,11 +70,15 @@ def scrape_and_notify(config: dict, notifiers: list):
             if delivered:
                 mark_seen(listing['url'])
                 logger.info(f"Delivered and marked seen: {listing.get('title')}")
+                delivered_count += 1
             else:
                 logger.error(f"All channels failed for {listing['url']} — will retry next run")
 
+        return delivered_count
+
     except Exception as e:
         logger.error(f"Error in scrape_and_notify: {e}")
+        return 0
 
 
 def main():
@@ -85,6 +96,23 @@ def main():
         config['schedule']['hours'],
         lambda: scrape_and_notify(config, notifiers),
     )
+
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    chat_id = os.getenv('TELEGRAM_CHAT_ID')
+
+    if not config['filters'].get('areas'):
+        if bot_token and chat_id:
+            _send(bot_token, chat_id, "No areas configured.\n\n" + HELP_TEXT)
+
+    if bot_token and chat_id:
+        poll_commands(
+            bot_token, chat_id, config,
+            lambda: scrape_and_notify(config, notifiers),
+        )
+    else:
+        logger.warning("Telegram credentials not set — command interface unavailable")
+        while True:
+            time.sleep(3600)
 
 
 if __name__ == "__main__":
