@@ -40,7 +40,7 @@ _FUNDA_BASE = 'https://www.funda.nl/zoeken/koop'
 _HEADERS = {
     'User-Agent': 'facebookexternalhit/1.1',
 }
-_PAGE_DELAY = 3   # seconds between paginated requests
+_PAGE_DELAY_SECONDS = 3
 _DB_PATH = Path(__file__).resolve().parent.parent.parent / 'seen_listings.db'
 
 
@@ -256,7 +256,7 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
 
     for page in range(1, n_pages + 1):
         if page > 1:
-            time.sleep(_PAGE_DELAY)
+            time.sleep(_PAGE_DELAY_SECONDS)
 
         url = _build_url(filters, page=page)
         logger.info(f'Fetching page {page}: {url}')

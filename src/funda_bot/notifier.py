@@ -61,6 +61,7 @@ def _request_with_retry(url: str, data: dict | None = None, params: dict | None 
 
 
 def _format_plain(listing: dict) -> str:
+    """Format listing as a plain-text message."""
     return (
         f"🏠 {listing.get('title')}\n"
         f"💰 {_fmt_price(listing.get('price'))}\n"
@@ -73,6 +74,7 @@ def _format_plain(listing: dict) -> str:
 
 
 def _format_html(listing: dict) -> str:
+    """Format listing as an HTML email body."""
     photos = listing.get('photos') or []
     imgs = ''.join(
         f'<img src="{p}" style="width:48%;margin:1%;border-radius:6px;">'
@@ -119,7 +121,6 @@ class TelegramNotifier:
         photos = listing.get('photos') or []
 
         if len(photos) > 1:
-            # Send album: caption goes on the first photo only
             media = [
                 {'type': 'photo', 'media': url, **({"caption": message} if i == 0 else {})}
                 for i, url in enumerate(photos)
