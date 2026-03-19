@@ -279,10 +279,10 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
     # deduplicate by URL (multiple areas can yield duplicates)
     seen_urls: set[str] = set()
     unique: list[dict] = []
-    for l in all_listings:
-        if l['url'] and l['url'] not in seen_urls:
-            seen_urls.add(l['url'])
-            unique.append(l)
+    for listing in all_listings:
+        if listing['url'] and listing['url'] not in seen_urls:
+            seen_urls.add(listing['url'])
+            unique.append(listing)
 
     return unique
 

@@ -123,7 +123,7 @@ schedule:
   hours: ["7:00", "9:00", "12:00", "15:00", "16:00", "18:00"]
 ```
 
-**Area slugs** follow the funda.nl URL pattern — the part after `funda.nl/`. For example, the Utrecht neighbourhood Oudwijk is `utrecht/oudwijk`.
+**Area slugs** are neighbourhood path fragments from funda.nl. To find a slug: navigate to a neighbourhood on funda.nl, then copy the `city/neighbourhood` portion from the URL (e.g. `utrecht/oudwijk`).
 
 **Schedule times** are in `HH:MM` format (24-hour, Europe/Amsterdam timezone). The bot must be restarted to pick up schedule changes.
 
@@ -162,5 +162,6 @@ pytest
 ## Notes
 
 - **Personal use only.** Scraping funda.nl for commercial purposes violates their Terms of Service.
-- The `publication_days` filter uses `publication_date` extracted directly from the Nuxt SSR payload. Listings without a date are passed through unchanged.
+- The bot uses the Dutch-language Funda endpoint (`/zoeken/koop`). The English endpoint (`/en/zoeken/koop`) excludes same-day listings even with `publication_date` set, so the Dutch endpoint is required for timely alerts.
+- `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.

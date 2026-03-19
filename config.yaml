@@ -24,7 +24,7 @@ filters:
     - "C"
     - "A+++++"
   min_bedrooms: 1            # null = no lower bound
-  keywords: []               # only listings whose description contains at least one of these keywords; empty list means no filtering
+  keywords: []               # only listings whose title contains at least one of these keywords; empty list means no filtering
 
 schedule:
   hours: ["7:00", "9:00", "12:00", "15:00", "16:00", "18:00"]
