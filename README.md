@@ -144,6 +144,8 @@ When Telegram is configured, the bot accepts commands directly in the chat:
 | `/setdate 3` | Set publication days (max 10) |
 | `/addarea utrecht/oudwijk` | Add an area slug |
 | `/removearea utrecht/oudwijk` | Remove an area slug |
+| `/addkeyword tuin` | Add a keyword filter |
+| `/removekeyword tuin` | Remove a keyword filter |
 | `/help` | List all commands |
 
 Filter changes take effect on the next scheduled run and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.

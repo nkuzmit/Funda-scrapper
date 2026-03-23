@@ -14,6 +14,8 @@ Commands
 /setdate N          — set publication_days
 /addarea SLUG       — add a funda area slug (e.g. utrecht/oudwijk)
 /removearea SLUG    — remove a funda area slug
+/addkeyword WORD    — add a keyword filter
+/removekeyword WORD — remove a keyword filter
 """
 
 import logging
@@ -40,6 +42,8 @@ HELP_TEXT = (
     "/setdate 3 — set publication days (max 10)\n"
     "/addarea utrecht/oudwijk — add an area slug\n"
     "/removearea utrecht/oudwijk — remove an area slug\n"
+    "/addkeyword tuin — add a keyword filter\n"
+    "/removekeyword tuin — remove a keyword filter\n"
     "/help — show this message"
 )
 
@@ -175,6 +179,32 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             areas.remove(slug)
             _save_config(config)
             _send(bot_token, chat_id, f"Area removed: {slug}")
+
+    elif cmd == '/addkeyword':
+        if not args:
+            _send(bot_token, chat_id, "Usage: /addkeyword tuin")
+            return
+        word = args[0].lower()
+        keywords = filters.setdefault('keywords', [])
+        if word in keywords:
+            _send(bot_token, chat_id, f"Already in list: {word}")
+        else:
+            keywords.append(word)
+            _save_config(config)
+            _send(bot_token, chat_id, f"Keyword added: {word}")
+
+    elif cmd == '/removekeyword':
+        if not args:
+            _send(bot_token, chat_id, "Usage: /removekeyword tuin")
+            return
+        word = args[0].lower()
+        keywords = filters.get('keywords') or []
+        if word not in keywords:
+            _send(bot_token, chat_id, f"Not in list: {word}")
+        else:
+            keywords.remove(word)
+            _save_config(config)
+            _send(bot_token, chat_id, f"Keyword removed: {word}")
 
     else:
         _send(bot_token, chat_id, "Unknown command. Send /help for the full list.")
