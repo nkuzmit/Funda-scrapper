@@ -1,30 +1,43 @@
 notifications:
-  channels: ["telegram"]   # active channels: telegram, email, whatsapp
-
+  channels:
+  - telegram
 filters:
-  areas:                     # only listings in these areas; empty list means no filtering 
-    - "utrecht/tuinwijk-oost"
-    - "utrecht/tuinwijk-west"
-    - "utrecht/vogelenbuurt"
-    - "utrecht/zeeheldenbuurt-hengeveldstraat-en-omgeving"
-    - "utrecht/wittevrouwen"
-    - "utrecht/buiten-wittevrouwen"
-    - "utrecht/wilhelminapark-en-omgeving"
-    - "utrecht/oudwijk"
-  price_min: 550000          # null = no lower bound
-  price_max: null            # null = no upper bound
-  publication_days: 3        # only listings published within this many days; recommended max 5, hard max 10
-  energy_labels:             # only listings with these energy labels; empty list means no filtering
-    - "A++++"
-    - "A+++"
-    - "A++"
-    - "A+"
-    - "A"
-    - "B"
-    - "C"
-    - "A+++++"
-  min_bedrooms: 1            # null = no lower bound
-  keywords: []               # only listings whose title contains at least one of these keywords; empty list means no filtering
-
+  areas:
+  - utrecht/tuinwijk-oost
+  - utrecht/tuinwijk-west
+  - utrecht/vogelenbuurt
+  - utrecht/zeeheldenbuurt-hengeveldstraat-en-omgeving
+  - utrecht/wittevrouwen
+  - utrecht/buiten-wittevrouwen
+  - utrecht/wilhelminapark-en-omgeving
+  - utrecht/oudwijk
+  price_min: 550000
+  price_max: null
+  publication_days: 3
+  energy_labels:
+  - A++++
+  - A+++
+  - A++
+  - A+
+  - A
+  - B
+  - C
+  - A+++++
+  min_bedrooms: 1
+  keywords: []
 schedule:
-  hours: ["7:00", "8:00", "9:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"]
+  hours:
+  - '7:00'
+  - '8:00'
+  - '9:00'
+  - '10:00'
+  - '11:00'
+  - '12:00'
+  - '13:00'
+  - '14:00'
+  - '15:00'
+  - '16:00'
+  - '17:00'
+  - '18:00'
+  - '19:00'
+  - '20:00'
