@@ -15,6 +15,9 @@ Last updated: 2026-06-25
 - **Deployed (2026-06-25):** Sprint 2 — L2 energy_label None fix, L3 scheduler
   raises on failed start, M5 deps pinned, M4 scraper fixture + 6 Nuxt parser tests.
   40/40 tests. Telegram token rotated.
+- **Merged (2026-06-25):** floor_area filter (URL param + post-filter + /setfloor),
+  amenities filter (/addamenity /removeamenity), bedrooms sent as URL param.
+  48/48 tests.
 
 ---
 
