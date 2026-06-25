@@ -115,3 +115,14 @@ def test_setdate_valid_input_updates_config(ctx):
         handle_command('/setdate 7', config, 'tok', '123', MagicMock())
         assert config['filters']['publication_days'] == 7
         save.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# /setlabel
+# ---------------------------------------------------------------------------
+
+def test_setlabel_normalises_to_uppercase(ctx):
+    config, send = ctx
+    with patch('funda_bot.commands._save_config'):
+        handle_command('/setlabel a b+ c', config, 'tok', '123', MagicMock())
+    assert config['filters']['energy_labels'] == ['A', 'B+', 'C']

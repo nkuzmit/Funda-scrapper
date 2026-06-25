@@ -163,7 +163,7 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if not args:
             _send(bot_token, chat_id, "Usage: /setlabel A B C")
             return
-        filters['energy_labels'] = args
+        filters['energy_labels'] = [a.upper() for a in args]
         _save_config(config)
         _send(bot_token, chat_id, f"Energy labels set: {' '.join(args)}")
 
