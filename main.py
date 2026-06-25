@@ -6,6 +6,7 @@ import copy
 import logging
 import logging.handlers
 import os
+import shutil
 import time
 import yaml
 from dotenv import load_dotenv
@@ -33,10 +34,17 @@ logging.basicConfig(
 
 
 _CONFIG_PATH = Path(__file__).resolve().parent / 'config.yaml'
+_CONFIG_EXAMPLE_PATH = Path(__file__).resolve().parent / 'config.example.yaml'
 
 
 def load_config():
-    """Load configuration from config.yaml."""
+    """Load configuration from config.yaml, bootstrapping from the template on first run."""
+    if not _CONFIG_PATH.exists():
+        if not _CONFIG_EXAMPLE_PATH.exists():
+            logger.error("Neither config.yaml nor config.example.yaml found")
+            raise FileNotFoundError("config.example.yaml is missing")
+        shutil.copyfile(_CONFIG_EXAMPLE_PATH, _CONFIG_PATH)
+        logger.info("config.yaml not found — created from config.example.yaml")
     try:
         with open(_CONFIG_PATH, 'r') as f:
             return yaml.safe_load(f)
