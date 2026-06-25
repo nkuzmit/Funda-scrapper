@@ -183,42 +183,11 @@ pytest
 
 ---
 
-## Deployment (Linux / Hetzner)
+## Deployment
 
-### 1. Clone and install
-
-```bash
-git clone https://github.com/nkuzmit/Funda-scrapper.git
-cd Funda-Scrapper
-python3 -m venv venv
-venv/bin/pip install -r requirements.txt
-```
-
-### 2. Create `.env` with credentials
-
-```bash
-cp .env.example .env
-# fill in TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, etc.
-```
-
-### 3. Install systemd service
-
-```bash
-cp funda-bot.service /etc/systemd/system/
-# edit WorkingDirectory and ExecStart paths if your install path differs
-systemctl enable --now funda-bot
-systemctl status funda-bot
-```
-
-### Useful commands
-
-```bash
-systemctl status funda-bot                            # check status
-journalctl -u funda-bot -f                            # live system logs
-tail -f main.log                                      # app logs
-systemctl restart funda-bot                           # restart after config change
-git pull origin main && systemctl restart funda-bot   # deploy update
-```
+Runs on a Linux VPS as a systemd service. Full install steps, the one-time config
+migration, and the post-deploy smoke test are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md);
+routine deploys and the dev workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
