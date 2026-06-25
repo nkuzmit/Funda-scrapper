@@ -8,16 +8,19 @@ Last updated: 2026-06-25
 
 ## Status snapshot
 
-- **Shipped to `main` (2026-06-25):** photo fix (tiara-media backend), Telegram
-  token redaction in logs, scrape skipped when no areas configured — deployed.
-- **Shipped to `main` (2026-06-25):** M1 input validation, M2 /setlabel case
-  normalisation, M3 thread-safe config — all deployed. 34/34 tests pass.
-- **In review:** branch `fix/h2-config-split` (H2 below) — pushed, awaiting merge.
+- **Shipped to `main` (2026-06-25):** Sprint 1 complete — photo fix, token
+  redaction, no-areas guard, M1 input validation, M2 /setlabel normalisation,
+  M3 thread-safe config. 34/34 tests.
+- **Shipped to `main` (2026-06-25):** H2 config split — `config.yaml` untracked,
+  `config.example.yaml` added, bootstrap on first run. Server migration pending.
+- **Shipped to `main` (2026-06-25):** Sprint 2 complete — L2 energy_label None
+  fix, L3 scheduler raises on failed start, M5 deps pinned, M4 scraper fixture +
+  6 Nuxt parser tests. 40/40 tests.
 
 ## Do first (cross-cutting, not backlog items)
 
-1. **Deploy `main`** to restore listing photos — see [CONTRIBUTING.md](../CONTRIBUTING.md#deploy).
-   The photo fix is the user-visible win and is currently live in code only.
+1. **Deploy `main`** to server and run the one-time H2 migration —
+   see [docs/DEPLOYMENT.md](DEPLOYMENT.md#one-time-migration-configyaml-becomes-untracked).
 2. **Rotate the Telegram bot token** via @BotFather — it was logged in plaintext
    before redaction (main.log + journald), so treat it as compromised.
 
@@ -49,22 +52,25 @@ deepcopies filters under the lock before any HTTP call. 34 tests green.
 
 ---
 
-## Sprint 2 — Resilience & hygiene
+## Sprint 2 — Resilience & hygiene · DONE · 2026-06-25
 
-### M4 — Scraper resilience tests · M
-The scraper depends on Funda's Nuxt payload shape + the `facebookexternalhit` UA; the
-photo break was this fragility going silent. Save a real payload as a fixture and test
-`_parse_nuxt_listings` + `_photo_url` against it, so a Funda change fails a test
-instead of returning `[]` in production.
+### M4 — Scraper resilience tests · DONE
+`tests/fixtures/nuxt_payload.json` captures the double-wrapped Nuxt payload
+structure. 6 tests cover happy path, photo filtering, bot-challenge, no-payload,
+None energy_label, and empty listing list.
 
-### M5 — Pin dependencies · S
-`requirements.txt` is unpinned and the bot runs on Python 3.14.3. Pin the known-good
-set so a fresh install can't pull an incompatible major.
+### M5 — Pin dependencies · DONE
+`requirements.txt` now pins all 5 direct deps to their known-good versions.
 
-### L1–L3 — Cleanups · S
-- **L1:** delete empty `src/controllers`, `src/routes`, `src/services`.
-- **L2:** `notifier.py` `.get('energy_label', 'N/A')` returns `"None"` when present-but-None — use `or 'N/A'`.
-- **L3:** `scheduler.py` swallows a failed `.start()`; log/raise so a dead scheduler is visible.
+### L1 — Empty dirs · N/A
+`src/controllers`, `src/routes`, `src/services` did not exist; nothing to delete.
+
+### L2 — energy_label None · DONE
+`notifier.py` uses `or 'N/A'` in both plain-text and HTML formatters.
+
+### L3 — Scheduler raise · DONE
+`scheduler.py` re-raises after logging a failed `.start()` so a dead scheduler
+is visible to the caller.
 
 ---
 
@@ -80,6 +86,7 @@ reconcile with H2's config bootstrap.
 
 ## Known risks
 
-- **Scraper fragility (M4)** is the standing operational risk — Funda can change the
+- **Scraper fragility** is the standing operational risk — Funda can change the
   payload or block the UA at any time; failures degrade to empty results, not errors.
-- **Python 3.14.3** is bleeding-edge; unpinned deps (M5) compound this.
+  M4 fixture tests will catch payload shape changes.
+- **Python 3.14.3** is bleeding-edge; deps are now pinned (M5 done).
