@@ -57,3 +57,14 @@ def test_matches_filters_no_date_passes_through():
     filters = {'price_min': 0, 'price_max': 200000, 'min_bedrooms': 0,
                'keywords': [], 'publication_days': 1}
     assert matches_filters(listing, filters)
+
+
+def test_matches_filters_floor_area():
+    base = {'price': 300000, 'bedrooms': 2, 'title': 'A', 'keywords': []}
+    filters = {'price_min': 0, 'price_max': 500000, 'min_bedrooms': 0,
+               'keywords': [], 'floor_area_min': 90, 'floor_area_max': 130}
+
+    assert matches_filters({**base, 'size': 100}, filters)   # within range
+    assert not matches_filters({**base, 'size': 80}, filters)   # below min
+    assert not matches_filters({**base, 'size': 140}, filters)  # above max
+    assert matches_filters({**base, 'size': None}, filters)  # no size → pass through

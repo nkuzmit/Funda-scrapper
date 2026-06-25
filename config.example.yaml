@@ -16,6 +16,9 @@ filters:
   publication_days: 3       # only listings published within this many days (max 10)
   energy_labels: []         # e.g. [A, B, C]; empty = no filter
   min_bedrooms: 1           # null = no lower bound
+  floor_area_min: null      # null = no lower bound (m²)
+  floor_area_max: null      # null = no upper bound (m²)
+  amenities: []             # e.g. [bathtub, parking]; empty = no filter
   keywords: []              # match any keyword in the listing title; empty = no filter
 
 schedule:

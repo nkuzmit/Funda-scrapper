@@ -103,6 +103,20 @@ def _build_url(filters: dict, page: int = 1) -> str:
     if pub_days:
         parts.append(f'publication_date="{pub_days}"')
 
+    min_fa = filters.get('floor_area_min')
+    max_fa = filters.get('floor_area_max')
+    if min_fa is not None or max_fa is not None:
+        parts.append(f'floor_area="{min_fa or ""}-{max_fa or ""}"')
+
+    min_bed = filters.get('min_bedrooms')
+    if min_bed:
+        parts.append(f'bedrooms="{min_bed}-"')
+
+    amenities = filters.get('amenities') or []
+    if amenities:
+        quoted = ','.join(f'"{a}"' for a in amenities)
+        parts.append(f'amenities=[{quoted}]')
+
     parts.append('sort="date_down"')
 
     if page > 1:
