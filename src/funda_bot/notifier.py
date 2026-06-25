@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import smtplib
 import time
 from email.mime.multipart import MIMEMultipart
@@ -27,6 +28,15 @@ logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 2
 _RETRY_DELAY = 3  # seconds
+
+# Telegram bot tokens are embedded in api.telegram.org URLs and leak through
+# requests' exception messages. Scrub them before logging.
+_TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
+
+
+def _redact(text) -> str:
+    """Remove Telegram bot tokens from a string before logging."""
+    return _TOKEN_RE.sub('bot<redacted>', str(text))
 
 
 # ---------------------------------------------------------------------------
@@ -53,10 +63,10 @@ def _request_with_retry(url: str, data: dict | None = None, params: dict | None 
             return response
         except Exception as e:
             if attempt <= _MAX_RETRIES:
-                logger.warning(f"Attempt {attempt} failed ({e}), retrying in {_RETRY_DELAY}s...")
+                logger.warning(f"Attempt {attempt} failed ({_redact(e)}), retrying in {_RETRY_DELAY}s...")
                 time.sleep(_RETRY_DELAY)
             else:
-                logger.error(f"All {_MAX_RETRIES + 1} attempts failed: {e}")
+                logger.error(f"All {_MAX_RETRIES + 1} attempts failed: {_redact(e)}")
     return None
 
 

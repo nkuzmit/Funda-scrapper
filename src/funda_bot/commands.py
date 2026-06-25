@@ -19,6 +19,7 @@ Commands
 """
 
 import logging
+import re
 import time
 from pathlib import Path
 
@@ -26,6 +27,16 @@ import requests
 import yaml
 
 logger = logging.getLogger(__name__)
+
+# Telegram bot tokens appear in api.telegram.org URLs, which surface inside
+# requests' exception messages. Scrub them before anything reaches the logs.
+_TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
+
+
+def _redact(text) -> str:
+    """Remove Telegram bot tokens from a string before logging."""
+    return _TOKEN_RE.sub('bot<redacted>', str(text))
+
 
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
 
@@ -61,7 +72,7 @@ def _send(bot_token: str, chat_id: str, text: str):
             timeout=10,
         )
     except Exception as e:
-        logger.error(f"Failed to send Telegram message: {e}")
+        logger.error(f"Failed to send Telegram message: {_redact(e)}")
 
 
 def _save_config(config: dict):
@@ -244,5 +255,5 @@ def poll_commands(bot_token: str, chat_id: str, config: dict, scrape_fn):
                 if text.startswith('/'):
                     handle_command(text, config, bot_token, chat_id, scrape_fn)
         except Exception as e:
-            logger.error(f"Polling error: {e}")
+            logger.error(f"Polling error: {_redact(e)}")
             time.sleep(5)
