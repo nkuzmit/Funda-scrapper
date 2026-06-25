@@ -9,10 +9,10 @@ Last updated: 2026-06-25
 ## Status snapshot
 
 - **Shipped to `main` (2026-06-25):** photo fix (tiara-media backend), Telegram
-  token redaction in logs, scrape skipped when no areas configured. Pushed to
-  origin — **not yet deployed to the server.**
+  token redaction in logs, scrape skipped when no areas configured — deployed.
+- **Shipped to `main` (2026-06-25):** M1 input validation on /setprice, /setrooms,
+  /setdate — deployed. 30/30 tests pass on Python 3.14.3.
 - **In review:** branch `fix/h2-config-split` (H2 below) — pushed, awaiting merge.
-- **Baseline:** 20/20 tests pass on Python 3.14.3.
 
 ## Do first (cross-cutting, not backlog items)
 
@@ -34,11 +34,9 @@ adding a tracked `config.example.yaml`, and bootstrapping on first run.
   main's README deploy pointer over the branch's inline migration note (migration
   now lives in DEPLOYMENT.md); README §3 gains the branch's config-bootstrap note.
 
-### M1 — Input validation on commands/wizard · NEXT · S
-`int()` in `/setprice`, `/setrooms`, `/setdate` and the wizard (`commands.py`) raises
-on bad input; the exception bubbles to the poll loop and the user gets no reply.
-- **Done when:** `/setrooms two` (and wizard equivalents) reply with a usage hint and
-  leave config unchanged; one unit test per parsing path.
+### M1 — Input validation on commands/wizard · DONE · 2026-06-25
+`int()` in `/setprice`, `/setrooms`, `/setdate` now catches `ValueError` and sends a
+usage hint, leaving config unchanged. 10 unit tests cover each parsing path.
 
 ### M2 — `/setlabel` case normalisation · S
 `/setlabel` stores raw-case args while the wizard upper-cases, so `/setlabel a b`

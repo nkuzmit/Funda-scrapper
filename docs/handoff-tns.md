@@ -1,14 +1,16 @@
 # Handoff — 2026-06-25
 
-Branch: main @ 59ac665, fix/h2-config-split @ 257740d (H2, pushed, awaiting merge)
-Last shipped: photo restore + token redaction + no-areas scrape-gate on main (1ebea60), pushed — not yet deployed.
+Branch: main @ 68780ea — deployed.
+
+## What shipped this session
+- Photo fix + token redaction + no-areas scrape-gate — deployed.
+- M1: ValueError handling on /setprice, /setrooms, /setdate — deployed. 30 tests green.
+- Telegram token rotated and re-uploaded to server (token was exposed in session output — needs **one more rotation** before next session).
 
 ## Pick up here next
-- **Deploy `main`** so the photo fix reaches the user — it is live in code only.
-  Deploy command and post-deploy smoke test: [CONTRIBUTING.md](../CONTRIBUTING.md#deploy) / [docs/DEPLOYMENT.md](DEPLOYMENT.md).
-- Then start **M1** (command/wizard input validation), the next item in [docs/WORKING_PLAN.md](WORKING_PLAN.md).
+- **Rotate Telegram token one more time** — it appeared in raw `repr()` output during this session (see conversation). Same flow: BotFather → revoke → update local `.env` → tell Claude to re-upload.
+- Then start **M2** (`/setlabel` case normalisation) — next item in [docs/WORKING_PLAN.md](WORKING_PLAN.md).
 
 ## Open question
-- `setup-wizard` branch — finish-and-merge or drop? It carries an unfinished wizard and
-  an emptied config. User to decide; tracked in [docs/WORKING_PLAN.md](WORKING_PLAN.md) Sprint 3.
-- Telegram token rotation (exposed pre-redaction) — confirm the user rotated it via @BotFather.
+- `fix/h2-config-split` branch — pushed, awaiting merge. Needs one-time server migration (see [docs/DEPLOYMENT.md](DEPLOYMENT.md)).
+- `setup-wizard` branch — finish-and-merge or drop? Tracked in [docs/WORKING_PLAN.md](WORKING_PLAN.md) Sprint 3.
