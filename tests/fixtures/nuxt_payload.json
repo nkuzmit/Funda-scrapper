@@ -1,0 +1,29 @@
+[
+  {"listings": 1, "totalListingsCount": 42, "fetchListings": null},
+  ["ShallowReactive", 2],
+  ["Reactive", 3],
+  [4],
+  {
+    "id": 12345678,
+    "address": 5,
+    "price": {"selling_price": [450000]},
+    "floor_area": 6,
+    "photo_image_id": 7,
+    "object_detail_page_relative_url": "/koop/amsterdam/huis-12345678-teststraat-1a/",
+    "number_of_rooms": 8,
+    "number_of_bedrooms": 9,
+    "energy_label": "A",
+    "publish_date": "2024-01-15"
+  },
+  {
+    "street_name": "Teststraat",
+    "house_number": "1",
+    "house_number_suffix": "A",
+    "city": "Amsterdam",
+    "postal_code": "1234 AB"
+  },
+  [90],
+  ["tiara-media/abc123/def456", "valentina_media/old/path.jpg", "agent-logo/skip.jpg"],
+  4,
+  2
+]
