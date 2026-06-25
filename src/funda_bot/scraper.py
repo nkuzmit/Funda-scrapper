@@ -43,6 +43,13 @@ _HEADERS = {
 _PAGE_DELAY_SECONDS = 3
 _DB_PATH = Path(__file__).resolve().parent.parent.parent / 'seen_listings.db'
 
+# Listing photos are served from Funda's media CDN.  The current backend is
+# tiara-media (sized via an ?options=width query); valentina_media is the
+# legacy backend still used by some older listings.
+_PHOTO_HOST = 'https://cloud.funda.nl'
+_PHOTO_WIDTH = 720
+_MAX_PHOTOS = 6
+
 
 # ---------------------------------------------------------------------------
 # State persistence (SQLite)
@@ -107,6 +114,23 @@ def _build_url(filters: dict, page: int = 1) -> str:
 # ---------------------------------------------------------------------------
 # Nuxt payload parsing
 # ---------------------------------------------------------------------------
+
+def _photo_url(path) -> str | None:
+    """Build a public listing-image URL from a resolved photo path.
+
+    Funda serves listing photos from ``tiara-media/<uuid>/<uuid>`` paths
+    (sized via an ``?options=width`` query) and legacy ``valentina_media/...``
+    paths.  Anything else — agent logos, unknown formats, non-strings —
+    returns None and is skipped by the caller.
+    """
+    if not isinstance(path, str):
+        return None
+    if path.startswith('tiara-media/'):
+        return f'{_PHOTO_HOST}/{path}?options=width={_PHOTO_WIDTH}'
+    if path.startswith('valentina_media/'):
+        return f'{_PHOTO_HOST}/{path}'
+    return None
+
 
 def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     """Extract normalised listing dicts and total count from a Funda HTML page.
@@ -206,16 +230,16 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
             fa = r(obj.get('floor_area'))
             size = r(fa[0]) if isinstance(fa, list) else fa
 
-            # photos — up to 6, valentina_media only (tiara-media requires auth)
-            photo_ids_raw = r(obj.get('photo_image_id'))
+            # photos — up to _MAX_PHOTOS, resolved through the media CDN
+            photo_paths = r(obj.get('photo_image_id'))
             photos: list[str] = []
-            if isinstance(photo_ids_raw, list):
-                for pid in photo_ids_raw:
-                    path = r(pid)
-                    if isinstance(path, str) and path.startswith('valentina_media/'):
-                        photos.append(f'https://cloud.funda.nl/{path}')
-                    if len(photos) == 6:
+            if isinstance(photo_paths, list):
+                for pid in photo_paths:
+                    if len(photos) >= _MAX_PHOTOS:
                         break
+                    photo = _photo_url(r(pid))
+                    if photo:
+                        photos.append(photo)
             thumbnail = photos[0] if photos else None
 
             # url

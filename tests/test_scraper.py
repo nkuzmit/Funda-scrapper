@@ -1,5 +1,30 @@
 import pytest
-from funda_bot.scraper import load_seen, mark_seen, get_new_listings
+from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url
+
+
+# ---------------------------------------------------------------------------
+# Photo URL construction (guards against Funda media-backend changes)
+# ---------------------------------------------------------------------------
+
+def test_photo_url_tiara_current_backend():
+    """Current tiara-media paths build a sized cloud.funda.nl URL."""
+    assert _photo_url('tiara-media/abc/def') == (
+        'https://cloud.funda.nl/tiara-media/abc/def?options=width=720'
+    )
+
+
+def test_photo_url_valentina_legacy_backend():
+    """Legacy valentina_media paths still resolve, unsized."""
+    assert _photo_url('valentina_media/210/547/012.jpg') == (
+        'https://cloud.funda.nl/valentina_media/210/547/012.jpg'
+    )
+
+
+def test_photo_url_unknown_is_dropped():
+    """Unrecognised paths and non-strings are skipped, not crashed on."""
+    assert _photo_url('office_logo/x') is None
+    assert _photo_url(None) is None
+    assert _photo_url(123) is None
 
 
 # ---------------------------------------------------------------------------
