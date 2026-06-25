@@ -51,6 +51,9 @@ def scrape_and_notify(config: dict, notifiers: list) -> int:
     """
     try:
         filters = config['filters']
+        if not filters.get('areas'):
+            logger.info("No areas configured — skipping scrape until setup is complete.")
+            return 0
         listings = get_new_listings(filters)
         logger.info(f"Found {len(listings)} new listings")
 
@@ -90,8 +93,11 @@ def main():
         return
 
     logger.info(f"Starting Funda Scraper Bot ({len(notifiers)} channel(s) active)")
-    logger.info("Running initial scrape on startup...")
-    scrape_and_notify(config, notifiers)
+    if config['filters'].get('areas'):
+        logger.info("Running initial scrape on startup...")
+        scrape_and_notify(config, notifiers)
+    else:
+        logger.info("No areas configured yet — skipping startup scrape until filters are set up.")
     schedule_scrapes(
         config['schedule']['hours'],
         lambda: scrape_and_notify(config, notifiers),
