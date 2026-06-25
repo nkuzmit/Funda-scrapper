@@ -1,0 +1,27 @@
+# Template for config.yaml (non-sensitive settings — credentials live in .env).
+#
+# config.yaml itself is gitignored: the bot rewrites it at runtime via the
+# Telegram commands, so tracking it would make `git pull` deploys conflict with
+# on-server edits. The bot copies this template to config.yaml on first run;
+# you can also do it manually:  cp config.example.yaml config.yaml
+
+notifications:
+  channels:                 # active channels: telegram, email, whatsapp
+  - telegram
+
+filters:
+  areas: []                 # funda.nl area slugs, e.g. "utrecht/oudwijk"; empty = not configured yet
+  price_min: null           # null = no lower bound
+  price_max: null           # null = no upper bound
+  publication_days: 3       # only listings published within this many days (max 10)
+  energy_labels: []         # e.g. [A, B, C]; empty = no filter
+  min_bedrooms: 1           # null = no lower bound
+  keywords: []              # match any keyword in the listing title; empty = no filter
+
+schedule:
+  hours:                    # 24h HH:MM, Europe/Amsterdam; restart to apply changes
+  - '7:00'
+  - '9:00'
+  - '12:00'
+  - '15:00'
+  - '18:00'
