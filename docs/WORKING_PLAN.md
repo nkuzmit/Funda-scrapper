@@ -10,8 +10,8 @@ Last updated: 2026-06-25
 
 - **Shipped to `main` (2026-06-25):** photo fix (tiara-media backend), Telegram
   token redaction in logs, scrape skipped when no areas configured — deployed.
-- **Shipped to `main` (2026-06-25):** M1 input validation on /setprice, /setrooms,
-  /setdate — deployed. 30/30 tests pass on Python 3.14.3.
+- **Shipped to `main` (2026-06-25):** M1 input validation, M2 /setlabel case
+  normalisation, M3 thread-safe config — all deployed. 34/34 tests pass.
 - **In review:** branch `fix/h2-config-split` (H2 below) — pushed, awaiting merge.
 
 ## Do first (cross-cutting, not backlog items)
@@ -43,10 +43,9 @@ usage hint, leaving config unchanged. 10 unit tests cover each parsing path.
 silently matches nothing in `filters.matches_filters`.
 - **Done when:** `/setlabel a b` persists `['A','B']`; covered by a test.
 
-### M3 — Thread-safe config access · M
-The `config` dict is read by the scheduler thread and mutated + file-written by the
-poll thread with no lock. Add a `threading.Lock` around read/mutate/`_save_config`.
-- **Done when:** a scrape cannot read a half-updated filter set or race the file write.
+### M3 — Thread-safe config access · DONE · 2026-06-25
+`_CONFIG_LOCK` in `commands.py` guards every mutation+save; `scrape_and_notify`
+deepcopies filters under the lock before any HTTP call. 34 tests green.
 
 ---
 
