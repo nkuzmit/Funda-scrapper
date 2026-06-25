@@ -228,4 +228,4 @@ git pull origin main && systemctl restart funda-bot   # deploy update
 - The bot uses the Dutch-language Funda endpoint (`/zoeken/koop`). The English endpoint (`/en/zoeken/koop`) excludes same-day listings even with `publication_date` set, so the Dutch endpoint is required for timely alerts.
 - `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged. Recommended maximum is **5 days**; do not exceed 10.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
-- On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed.
+- On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete.
