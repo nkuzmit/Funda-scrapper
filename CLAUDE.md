@@ -21,6 +21,7 @@ venv/Scripts/python main.py          # run the bot locally
 - **venv Python only** — system Python (also 3.14.x) lacks the deps.
 - **Test before commit**; `pytest` green is the gate.
 - **Branch per fix/feature** off `main`; `main` is the deploy trunk. See [CONTRIBUTING.md](CONTRIBUTING.md).
+  **Never commit directly to `main`.** Always create a branch (e.g. `fix/m2-setlabel`), implement there, then merge.
 - Secrets in `.env`; live config in `config.yaml` (gitignored). Never commit either.
 
 ## Stale-doc audit rule
