@@ -51,12 +51,15 @@ HELP_TEXT = (
     "/run — trigger immediate scrape\n"
     "/setprice 500000 900000 — set price range (null = no bound)\n"
     "/setrooms 2 — set minimum bedrooms\n"
+    "/setfloor 90 130 — set floor area range in m² (null = no bound)\n"
     "/setlabel A B C — set energy labels\n"
     "/setdate 3 — set publication days (max 10)\n"
     "/addarea utrecht/oudwijk — add an area slug\n"
     "/removearea utrecht/oudwijk — remove an area slug\n"
     "/addkeyword tuin — add a keyword filter\n"
     "/removekeyword tuin — remove a keyword filter\n"
+    "/addamenity bathtub — add an amenity filter\n"
+    "/removeamenity bathtub — remove an amenity filter\n"
     "/help — show this message"
 )
 
@@ -100,13 +103,21 @@ def _fmt_filters(filters: dict) -> str:
     )
     labels_str = ' '.join(labels) if labels else '(none)'
 
+    floor_min = filters.get('floor_area_min')
+    floor_max = filters.get('floor_area_max')
+    floor_str = f"{floor_min or 'any'} — {floor_max or 'any'} m²"
+
+    amenities_str = ', '.join(filters.get('amenities') or []) or '(none)'
+
     return (
         f"📍 Areas ({len(areas)}):\n{area_lines}\n\n"
         f"💰 Price: {price_str}\n"
         f"🛏️  Min bedrooms: {filters.get('min_bedrooms') or 'any'}\n"
+        f"📐 Floor area: {floor_str}\n"
         f"⚡ Energy labels: {labels_str}\n"
         f"📅 Publication: last {filters.get('publication_days')} days\n"
-        f"🔍 Keywords: {', '.join(filters.get('keywords') or []) or '(none)'}"
+        f"🔍 Keywords: {', '.join(filters.get('keywords') or []) or '(none)'}\n"
+        f"🛁 Amenities: {amenities_str}"
     )
 
 
@@ -214,6 +225,22 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
                 _save_config(config)
             _send(bot_token, chat_id, f"Area removed: {slug}")
 
+    elif cmd == '/setfloor':
+        if len(args) < 2:
+            _send(bot_token, chat_id, "Usage: /setfloor 90 130  (use null for no bound)")
+            return
+        try:
+            floor_min = None if args[0] == 'null' else int(args[0])
+            floor_max = None if args[1] == 'null' else int(args[1])
+        except ValueError:
+            _send(bot_token, chat_id, "Usage: /setfloor 90 130  (use null for no bound)")
+            return
+        with _CONFIG_LOCK:
+            filters['floor_area_min'] = floor_min
+            filters['floor_area_max'] = floor_max
+            _save_config(config)
+        _send(bot_token, chat_id, f"Floor area set: {args[0]} — {args[1]} m²")
+
     elif cmd == '/addkeyword':
         if not args:
             _send(bot_token, chat_id, "Usage: /addkeyword tuin")
@@ -241,6 +268,34 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
                 keywords.remove(word)
                 _save_config(config)
             _send(bot_token, chat_id, f"Keyword removed: {word}")
+
+    elif cmd == '/addamenity':
+        if not args:
+            _send(bot_token, chat_id, "Usage: /addamenity bathtub")
+            return
+        word = args[0].lower()
+        amenities = filters.setdefault('amenities', [])
+        if word in amenities:
+            _send(bot_token, chat_id, f"Already in list: {word}")
+        else:
+            with _CONFIG_LOCK:
+                amenities.append(word)
+                _save_config(config)
+            _send(bot_token, chat_id, f"Amenity added: {word}")
+
+    elif cmd == '/removeamenity':
+        if not args:
+            _send(bot_token, chat_id, "Usage: /removeamenity bathtub")
+            return
+        word = args[0].lower()
+        amenities = filters.get('amenities') or []
+        if word not in amenities:
+            _send(bot_token, chat_id, f"Not in list: {word}")
+        else:
+            with _CONFIG_LOCK:
+                amenities.remove(word)
+                _save_config(config)
+            _send(bot_token, chat_id, f"Amenity removed: {word}")
 
     else:
         _send(bot_token, chat_id, "Unknown command. Send /help for the full list.")

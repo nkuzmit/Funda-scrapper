@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
-from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url, _parse_nuxt_listings
+from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url, _parse_nuxt_listings, _build_url
 
 _FIXTURE_DIR = Path(__file__).parent / 'fixtures'
 
@@ -15,6 +15,30 @@ def _html(payload) -> str:
 def _load_fixture(name: str):
     with open(_FIXTURE_DIR / name) as f:
         return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# _build_url — new filter params appear in the search URL
+# ---------------------------------------------------------------------------
+
+def test_build_url_floor_area():
+    url = _build_url({'floor_area_min': 90, 'floor_area_max': 130})
+    assert 'floor_area="90-130"' in url
+
+
+def test_build_url_bedrooms():
+    url = _build_url({'min_bedrooms': 2})
+    assert 'bedrooms="2-"' in url
+
+
+def test_build_url_amenities():
+    url = _build_url({'amenities': ['bathtub', 'parking']})
+    assert 'amenities=["bathtub","parking"]' in url
+
+
+def test_build_url_floor_area_min_only():
+    url = _build_url({'floor_area_min': 90})
+    assert 'floor_area="90-"' in url
 
 
 # ---------------------------------------------------------------------------

@@ -32,6 +32,14 @@ def matches_filters(listing: dict, filters: dict) -> bool:
         if bedrooms is not None and bedrooms < (filters.get('min_bedrooms') or 0):
             return False
 
+        size = listing.get('size')
+        if size is not None:
+            if size < (filters.get('floor_area_min') or 0):
+                return False
+            max_fa = filters.get('floor_area_max')
+            if max_fa is not None and size > max_fa:
+                return False
+
         labels = filters.get('energy_labels') or []
         energy_label = listing.get('energy_label')
         if labels and energy_label is not None:

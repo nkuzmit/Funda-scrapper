@@ -18,6 +18,9 @@ def _make_config(min_bedrooms=2, price_min=400000, price_max=800000, pub_days=3)
             'areas': [],
             'energy_labels': [],
             'keywords': [],
+            'floor_area_min': None,
+            'floor_area_max': None,
+            'amenities': [],
         }
     }
 
@@ -115,6 +118,32 @@ def test_setdate_valid_input_updates_config(ctx):
     with patch('funda_bot.commands._save_config') as save:
         handle_command('/setdate 7', config, 'tok', '123', MagicMock())
         assert config['filters']['publication_days'] == 7
+        save.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# /setfloor
+# ---------------------------------------------------------------------------
+
+def test_setfloor_bad_input_sends_hint(ctx):
+    config, send = ctx
+    handle_command('/setfloor abc 130', config, 'tok', '123', MagicMock())
+    send.assert_called_once()
+    assert 'Usage' in send.call_args[0][2]
+
+
+def test_setfloor_bad_input_leaves_config_unchanged(ctx):
+    config, send = ctx
+    handle_command('/setfloor abc 130', config, 'tok', '123', MagicMock())
+    assert config['filters']['floor_area_min'] is None
+
+
+def test_setfloor_valid_input_updates_config(ctx):
+    config, send = ctx
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command('/setfloor 90 130', config, 'tok', '123', MagicMock())
+        assert config['filters']['floor_area_min'] == 90
+        assert config['filters']['floor_area_max'] == 130
         save.assert_called_once()
 
 
