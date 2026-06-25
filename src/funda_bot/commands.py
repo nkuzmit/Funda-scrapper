@@ -20,6 +20,7 @@ Commands
 
 import logging
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -39,6 +40,7 @@ def _redact(text) -> str:
 
 
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
+_CONFIG_LOCK = threading.Lock()
 
 _LABEL_ORDER = ['A+++++', 'A++++', 'A+++', 'A++', 'A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
 
@@ -141,9 +143,10 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setprice 500000 900000  (use null for no bound)")
             return
-        filters['price_min'] = price_min
-        filters['price_max'] = price_max
-        _save_config(config)
+        with _CONFIG_LOCK:
+            filters['price_min'] = price_min
+            filters['price_max'] = price_max
+            _save_config(config)
         _send(bot_token, chat_id, f"Price set: {args[0]} — {args[1]}")
 
     elif cmd == '/setrooms':
@@ -155,16 +158,18 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setrooms 2")
             return
-        filters['min_bedrooms'] = rooms
-        _save_config(config)
+        with _CONFIG_LOCK:
+            filters['min_bedrooms'] = rooms
+            _save_config(config)
         _send(bot_token, chat_id, f"Min bedrooms set: {args[0]}")
 
     elif cmd == '/setlabel':
         if not args:
             _send(bot_token, chat_id, "Usage: /setlabel A B C")
             return
-        filters['energy_labels'] = [a.upper() for a in args]
-        _save_config(config)
+        with _CONFIG_LOCK:
+            filters['energy_labels'] = [a.upper() for a in args]
+            _save_config(config)
         _send(bot_token, chat_id, f"Energy labels set: {' '.join(args)}")
 
     elif cmd == '/setdate':
@@ -176,8 +181,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setdate 3")
             return
-        filters['publication_days'] = days
-        _save_config(config)
+        with _CONFIG_LOCK:
+            filters['publication_days'] = days
+            _save_config(config)
         _send(bot_token, chat_id, f"Publication days set: {days}")
 
     elif cmd == '/addarea':
@@ -189,8 +195,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if slug in areas:
             _send(bot_token, chat_id, f"Already in list: {slug}")
         else:
-            areas.append(slug)
-            _save_config(config)
+            with _CONFIG_LOCK:
+                areas.append(slug)
+                _save_config(config)
             _send(bot_token, chat_id, f"Area added: {slug}")
 
     elif cmd == '/removearea':
@@ -202,8 +209,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if slug not in areas:
             _send(bot_token, chat_id, f"Not in list: {slug}")
         else:
-            areas.remove(slug)
-            _save_config(config)
+            with _CONFIG_LOCK:
+                areas.remove(slug)
+                _save_config(config)
             _send(bot_token, chat_id, f"Area removed: {slug}")
 
     elif cmd == '/addkeyword':
@@ -215,8 +223,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if word in keywords:
             _send(bot_token, chat_id, f"Already in list: {word}")
         else:
-            keywords.append(word)
-            _save_config(config)
+            with _CONFIG_LOCK:
+                keywords.append(word)
+                _save_config(config)
             _send(bot_token, chat_id, f"Keyword added: {word}")
 
     elif cmd == '/removekeyword':
@@ -228,8 +237,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if word not in keywords:
             _send(bot_token, chat_id, f"Not in list: {word}")
         else:
-            keywords.remove(word)
-            _save_config(config)
+            with _CONFIG_LOCK:
+                keywords.remove(word)
+                _save_config(config)
             _send(bot_token, chat_id, f"Keyword removed: {word}")
 
     else:

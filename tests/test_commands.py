@@ -1,10 +1,11 @@
-"""Unit tests for handle_command — input validation (M1)."""
+"""Unit tests for handle_command — input validation (M1) and thread safety (M3)."""
 
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from funda_bot.commands import handle_command
+from funda_bot.commands import handle_command, _CONFIG_LOCK
 
 
 def _make_config(min_bedrooms=2, price_min=400000, price_max=800000, pub_days=3):
@@ -126,3 +127,46 @@ def test_setlabel_normalises_to_uppercase(ctx):
     with patch('funda_bot.commands._save_config'):
         handle_command('/setlabel a b+ c', config, 'tok', '123', MagicMock())
     assert config['filters']['energy_labels'] == ['A', 'B+', 'C']
+
+
+# ---------------------------------------------------------------------------
+# M3 — Thread safety
+# ---------------------------------------------------------------------------
+
+def test_config_lock_is_threading_lock():
+    assert isinstance(_CONFIG_LOCK, threading.Lock)
+
+
+def test_lock_released_after_mutation(ctx):
+    config, _ = ctx
+    with patch('funda_bot.commands._save_config'):
+        handle_command('/setrooms 3', config, 'tok', '123', MagicMock())
+    acquired = _CONFIG_LOCK.acquire(blocking=False)
+    assert acquired, "lock still held after command — deadlock risk"
+    _CONFIG_LOCK.release()
+
+
+def test_scrape_snapshot_is_independent(monkeypatch):
+    """scrape_and_notify must deepcopy filters so mid-scrape mutations don't corrupt it."""
+    import copy
+    import sys
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
+
+    captured = {}
+
+    def fake_get_new_listings(filters):
+        captured['filters'] = filters
+        return []
+
+    monkeypatch.setattr('funda_bot.scraper.get_new_listings', fake_get_new_listings)
+
+    import main as main_mod
+    config = {
+        'filters': {'areas': ['utrecht/oudwijk'], 'price_min': 400000, 'price_max': 800000,
+                    'min_bedrooms': 2, 'energy_labels': [], 'keywords': [], 'publication_days': 3},
+    }
+    main_mod.scrape_and_notify(config, [])
+
+    # mutate original after the snapshot was taken — captured copy must be unaffected
+    config['filters']['price_min'] = 999999
+    assert captured['filters']['price_min'] == 400000
