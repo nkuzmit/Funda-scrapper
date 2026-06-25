@@ -17,13 +17,6 @@ Last updated: 2026-06-25
   fix, L3 scheduler raises on failed start, M5 deps pinned, M4 scraper fixture +
   6 Nuxt parser tests. 40/40 tests.
 
-## Do first (cross-cutting, not backlog items)
-
-1. **Deploy `main`** to server and run the one-time H2 migration —
-   see [docs/DEPLOYMENT.md](DEPLOYMENT.md#one-time-migration-configyaml-becomes-untracked).
-2. **Rotate the Telegram bot token** via @BotFather — it was logged in plaintext
-   before redaction (main.log + journald), so treat it as compromised.
-
 ---
 
 ## Sprint 1 — Robustness & correctness
