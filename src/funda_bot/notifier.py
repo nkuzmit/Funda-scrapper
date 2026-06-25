@@ -78,7 +78,7 @@ def _format_plain(listing: dict) -> str:
         f"📍 {listing.get('location')}\n"
         f"📐 {listing.get('size')} m²\n"
         f"🛏️  {listing.get('bedrooms')} bedrooms / {listing.get('rooms')} rooms\n"
-        f"⚡ {listing.get('energy_label', 'N/A')}\n"
+        f"⚡ {listing.get('energy_label') or 'N/A'}\n"
         f"🔗 {listing.get('url')}"
     )
 
@@ -100,7 +100,7 @@ def _format_html(listing: dict) -> str:
   <tr><td><b>Location</b></td><td>{listing.get('location')}</td></tr>
   <tr><td><b>Size</b></td><td>{listing.get('size')} m²</td></tr>
   <tr><td><b>Rooms</b></td><td>{listing.get('bedrooms')} bedrooms / {listing.get('rooms')} total</td></tr>
-  <tr><td><b>Energy label</b></td><td>{listing.get('energy_label', 'N/A')}</td></tr>
+  <tr><td><b>Energy label</b></td><td>{listing.get('energy_label') or 'N/A'}</td></tr>
 </table>
 <p><a href="{listing.get('url')}">View on Funda →</a></p>
 </body></html>

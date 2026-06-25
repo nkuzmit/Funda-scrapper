@@ -13,21 +13,22 @@ def schedule_scrapes(hours: list, callback):
     form ``HH`` or ``HH:MM`` (24‑hour clock).  Entries without minutes default
     to minute 0.  All times are interpreted in Europe/Amsterdam timezone.
     """
+    scheduler = BackgroundScheduler(timezone=_TIMEZONE)
+    for entry in hours:
+        try:
+            if isinstance(entry, str) and ':' in entry:
+                parts = entry.split(':')
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+            else:
+                h = int(entry)
+                m = 0
+        except (ValueError, IndexError):
+            logger.warning(f"Skipping invalid schedule entry: {entry!r}")
+            continue
+        scheduler.add_job(callback, 'cron', hour=h, minute=m)
     try:
-        scheduler = BackgroundScheduler(timezone=_TIMEZONE)
-        for entry in hours:
-            try:
-                if isinstance(entry, str) and ':' in entry:
-                    parts = entry.split(':')
-                    h = int(parts[0])
-                    m = int(parts[1]) if len(parts) > 1 and parts[1] else 0
-                else:
-                    h = int(entry)
-                    m = 0
-            except (ValueError, IndexError):
-                logger.warning(f"Skipping invalid schedule entry: {entry!r}")
-                continue
-            scheduler.add_job(callback, 'cron', hour=h, minute=m)
         scheduler.start()
     except Exception as e:
-        logger.error(f"Error in scheduler: {e}")
+        logger.error(f"Scheduler failed to start: {e}")
+        raise

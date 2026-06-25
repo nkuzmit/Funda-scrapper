@@ -1,5 +1,84 @@
+import json
+from pathlib import Path
+
 import pytest
-from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url
+from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url, _parse_nuxt_listings
+
+_FIXTURE_DIR = Path(__file__).parent / 'fixtures'
+
+
+def _html(payload) -> str:
+    """Wrap a payload (list) as a minimal Funda-shaped HTML page."""
+    return f'<html><body><script>{json.dumps(payload)}</script></body></html>'
+
+
+def _load_fixture(name: str):
+    with open(_FIXTURE_DIR / name) as f:
+        return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# _parse_nuxt_listings — fixture-based tests guard against Funda payload changes
+# ---------------------------------------------------------------------------
+
+def test_parse_nuxt_happy_path():
+    """Fixture payload round-trips correctly through the Nuxt parser."""
+    payload = _load_fixture('nuxt_payload.json')
+    listings, total = _parse_nuxt_listings(_html(payload))
+
+    assert total == 42
+    assert len(listings) == 1
+    l = listings[0]
+    assert l['title'] == 'Teststraat 1A'
+    assert l['price'] == 450000
+    assert l['location'] == '1234 AB Amsterdam'
+    assert l['size'] == 90
+    assert l['bedrooms'] == 2
+    assert l['rooms'] == 4
+    assert l['energy_label'] == 'A'
+    assert l['url'] == 'https://www.funda.nl/koop/amsterdam/huis-12345678-teststraat-1a/'
+
+
+def test_parse_nuxt_photo_filtering():
+    """tiara-media and valentina_media photos are kept; agent-logo paths are dropped."""
+    payload = _load_fixture('nuxt_payload.json')
+    listings, _ = _parse_nuxt_listings(_html(payload))
+    photos = listings[0]['photos']
+
+    assert len(photos) == 2
+    assert photos[0] == 'https://cloud.funda.nl/tiara-media/abc123/def456?options=width=720'
+    assert photos[1] == 'https://cloud.funda.nl/valentina_media/old/path.jpg'
+    assert listings[0]['thumbnail'] == photos[0]
+
+
+def test_parse_nuxt_energy_label_none():
+    """energy_label field is None (not the string 'None') when absent from the listing."""
+    payload = _load_fixture('nuxt_payload.json')
+    payload[4]['energy_label'] = None
+    listings, _ = _parse_nuxt_listings(_html(payload))
+    assert listings[0]['energy_label'] is None
+
+
+def test_parse_nuxt_bot_challenge():
+    """Bot-challenge page returns empty results without raising."""
+    html = '<html><body>Je bent bijna op de pagina die je zocht</body></html>'
+    listings, total = _parse_nuxt_listings(html)
+    assert listings == [] and total == 0
+
+
+def test_parse_nuxt_no_payload():
+    """Page with no matching script tag returns empty results without raising."""
+    html = '<html><body><script>var x = 1;</script></body></html>'
+    listings, total = _parse_nuxt_listings(html)
+    assert listings == [] and total == 0
+
+
+def test_parse_nuxt_empty_listing_list():
+    """Payload with zero listings returns empty list; total still parses correctly."""
+    payload = _load_fixture('nuxt_payload.json')
+    payload[3] = []  # clear listing index list; leave totalListingsCount alone
+    listings, total = _parse_nuxt_listings(_html(payload))
+    assert listings == [] and total == 42
 
 
 # ---------------------------------------------------------------------------
