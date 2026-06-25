@@ -135,8 +135,14 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if len(args) < 2:
             _send(bot_token, chat_id, "Usage: /setprice 500000 900000  (use null for no bound)")
             return
-        filters['price_min'] = None if args[0] == 'null' else int(args[0])
-        filters['price_max'] = None if args[1] == 'null' else int(args[1])
+        try:
+            price_min = None if args[0] == 'null' else int(args[0])
+            price_max = None if args[1] == 'null' else int(args[1])
+        except ValueError:
+            _send(bot_token, chat_id, "Usage: /setprice 500000 900000  (use null for no bound)")
+            return
+        filters['price_min'] = price_min
+        filters['price_max'] = price_max
         _save_config(config)
         _send(bot_token, chat_id, f"Price set: {args[0]} — {args[1]}")
 
@@ -144,7 +150,12 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if not args:
             _send(bot_token, chat_id, "Usage: /setrooms 2")
             return
-        filters['min_bedrooms'] = int(args[0])
+        try:
+            rooms = int(args[0])
+        except ValueError:
+            _send(bot_token, chat_id, "Usage: /setrooms 2")
+            return
+        filters['min_bedrooms'] = rooms
         _save_config(config)
         _send(bot_token, chat_id, f"Min bedrooms set: {args[0]}")
 
@@ -160,7 +171,11 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if not args:
             _send(bot_token, chat_id, "Usage: /setdate 3")
             return
-        days = int(args[0])
+        try:
+            days = int(args[0])
+        except ValueError:
+            _send(bot_token, chat_id, "Usage: /setdate 3")
+            return
         filters['publication_days'] = days
         _save_config(config)
         _send(bot_token, chat_id, f"Publication days set: {days}")
