@@ -3,10 +3,6 @@
 Operational runbook for the Funda Scraper Bot on the Linux VPS (Ubuntu, systemd).
 The routine deploy command and dev workflow are in [CONTRIBUTING.md](../CONTRIBUTING.md#deploy).
 
-> **In flight:** the gitignored-config model and the migration below land with
-> `fix/h2-config-split` (see [WORKING_PLAN.md](WORKING_PLAN.md)). Until that merges,
-> `config.yaml` is still tracked; the migration is what you run when you merge it.
-
 ## First-time install
 
 ```bash
@@ -21,6 +17,10 @@ systemctl enable --now funda-bot
 ```
 
 ## One-time migration: config.yaml becomes untracked
+
+> **Already run on the production VPS (2026-06-25).** Kept for reference and for
+> standing up a new server from an old clone. Don't re-run it on a working
+> server — `git reset --hard` will discard any uncommitted local state.
 
 With H2, `config.yaml` is gitignored (rewritten live by the Telegram commands).
 On a server that still tracks it, run this once so `git pull` stops conflicting:
@@ -44,6 +44,10 @@ systemctl restart funda-bot
 
 ## Server reference
 
-- Ubuntu VPS, systemd unit `funda-bot`, repo at `/home/Funda-scrapper`.
+- Ubuntu VPS, systemd unit `funda-bot`.
+- Repo path: **unverified.** This file says `/home/Funda-scrapper`;
+  `funda-bot.service` says `/home/ubuntu/Funda-Scrapper`. They disagree, so both are
+  suspect — confirm with `systemctl show funda-bot -p WorkingDirectory` on the server
+  and correct whichever is wrong.
 - Logs: `journalctl -u funda-bot -f` (system) · `tail -f main.log` (app).
 - Host/SSH/credentials are recorded in the local `project_deployment` memory (not in git).

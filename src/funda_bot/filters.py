@@ -17,8 +17,14 @@ def matches_filters(listing: dict, filters: dict) -> bool:
 
     The filters dict may contain keys:
     ``price_min`` ``price_max`` ``min_bedrooms`` ``keywords``
-    ``publication_days`` ``energy_labels``
-    (areas and publication_days are also applied upstream at scrape time).
+    ``publication_days`` ``energy_labels`` ``floor_area_min`` ``floor_area_max``
+
+    Applied upstream at scrape time as well: ``areas``, ``publication_days``,
+    ``price_*``, ``energy_labels``, ``floor_area_*``, ``min_bedrooms``.
+
+    Deliberate asymmetries: ``amenities`` is sent upstream only (no post-filter
+    here, so it has no client-side backstop if Funda changes the param), and
+    ``keywords`` is post-filtered only (title substring, never sent upstream).
     """
     try:
         price = listing.get('price')

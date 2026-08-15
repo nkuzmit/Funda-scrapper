@@ -4,7 +4,7 @@ Living development plan for the Funda Scraper Bot, and the source of truth for
 sprint status and backlog priority. Update this file in the same session you
 change behaviour or status (see the stale-doc audit rule in [CLAUDE.md](../CLAUDE.md)).
 
-Last updated: 2026-06-25
+Last updated: 2026-08-15
 
 ## Status snapshot
 
@@ -17,8 +17,11 @@ Last updated: 2026-06-25
   40/40 tests. Telegram token rotated.
 - **Deployed (2026-06-25):** floor_area filter (URL param + post-filter + /setfloor),
   amenities filter (/addamenity /removeamenity), bedrooms sent as URL param.
-  48/48 tests. Server config updated: 11 areas, price 550k–720k, floor 90–130 m²,
-  energy labels A+++++-C, bathtub amenity.
+  48/48 tests. Server filter values were updated to match.
+
+> Live filter values are **not** recorded here — `config.yaml` on the server is their
+> only home (it's rewritten by the Telegram commands, so any copy here goes stale the
+> next time someone sends `/addarea`). Check with `/filters` in Telegram.
 
 ---
 
