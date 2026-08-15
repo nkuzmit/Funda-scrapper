@@ -44,10 +44,10 @@ systemctl restart funda-bot
 
 ## Server reference
 
-- Ubuntu VPS, systemd unit `funda-bot`.
-- Repo path: **unverified.** This file says `/home/Funda-scrapper`;
-  `funda-bot.service` says `/home/ubuntu/Funda-Scrapper`. They disagree, so both are
-  suspect — confirm with `systemctl show funda-bot -p WorkingDirectory` on the server
-  and correct whichever is wrong.
+- Hetzner VPS (Ubuntu 24.04), systemd unit `funda-bot`, repo at `/home/Funda-scrapper`.
+- **Runs as `root`** — there is no `ubuntu` user on this server. `funda-bot.service`
+  in the repo matches this as of 2026-08-15; it previously did not.
+- Sanity-check after any unit change:
+  `systemctl show funda-bot -p WorkingDirectory -p User`
 - Logs: `journalctl -u funda-bot -f` (system) · `tail -f main.log` (app).
 - Host/SSH/credentials are recorded in the local `project_deployment` memory (not in git).
