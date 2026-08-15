@@ -2,11 +2,14 @@
 Description=Funda Scraper Bot
 After=network.target
 
+# Paths must match the live server. This VPS has no `ubuntu` user — the bot runs as
+# root from /home/Funda-scrapper. Confirm before installing:
+#   systemctl show funda-bot -p WorkingDirectory -p User
 [Service]
 Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/Funda-Scrapper
-ExecStart=/home/ubuntu/Funda-Scrapper/venv/bin/python main.py
+User=root
+WorkingDirectory=/home/Funda-scrapper
+ExecStart=/home/Funda-scrapper/venv/bin/python main.py
 Restart=on-failure
 RestartSec=30
 
