@@ -5,7 +5,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 ## Features
 
 - Fetches listings by extracting the Nuxt server-side payload from funda.nl (structured JSON data, no fragile HTML parsing)
-- Filters by price, bedrooms, area, energy label, and keywords
+- Filters by area, price, bedrooms, floor area, energy label, publication date, amenities, and keywords
 - Notifications via **Telegram**, **Email (SMTP/HTML)**, and **WhatsApp (CallMeBot)**
 - Sends up to 6 listing photos as a Telegram album per notification
 - Persists seen listings in SQLite to avoid duplicate notifications
@@ -105,6 +105,7 @@ To use a different provider, pass `smtp_host` and `smtp_port` when constructing 
 ## Configuration
 
 Edit `config.yaml` to customise filters and schedule. Credentials are in `.env` only.
+`config.yaml` is gitignored; on first run the bot creates it from `config.example.yaml`.
 
 ```yaml
 notifications:
@@ -118,6 +119,9 @@ filters:
   publication_days: 3           # listings published within this many days
   energy_labels: ["A", "B"]    # null or empty = no filter
   min_bedrooms: 1               # null = no lower bound
+  floor_area_min: 90            # m²; null = no lower bound
+  floor_area_max: 130           # m²; null = no upper bound
+  amenities: ["bathtub"]        # sent to Funda only (no client-side check); empty = no filter
   keywords: []                  # match any keyword in listing title; empty = no filter
 
 schedule:
@@ -140,12 +144,15 @@ When Telegram is configured, the bot accepts commands directly in the chat:
 | `/run` | Trigger an immediate scrape |
 | `/setprice 500000 null` | Set price range (`null` = no bound) |
 | `/setrooms 2` | Set minimum bedrooms |
+| `/setfloor 90 130` | Set floor area range in m² (`null` = no bound) |
 | `/setlabel A B C` | Set energy labels |
 | `/setdate 3` | Set publication days (max 10) |
 | `/addarea utrecht/oudwijk` | Add an area slug |
 | `/removearea utrecht/oudwijk` | Remove an area slug |
 | `/addkeyword tuin` | Add a keyword filter |
 | `/removekeyword tuin` | Remove a keyword filter |
+| `/addamenity bathtub` | Add an amenity filter |
+| `/removeamenity bathtub` | Remove an amenity filter |
 | `/help` | List all commands |
 
 Filter changes take effect on the next scheduled run and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
@@ -158,15 +165,21 @@ Filter changes take effect on the next scheduled run and are written back to `co
 main.py                  Entry point — wires config, notifiers, and scheduler
 src/funda_bot/
   scraper.py             Extracts listings from Funda Nuxt payload; manages SQLite seen-state
-  filters.py             Post-scrape filter matching (price, rooms, labels, keywords)
+  filters.py             Post-scrape filter matching (price, bedrooms, floor area, labels, date, keywords)
   notifier.py            Notifier protocol + Telegram / Email / WhatsApp implementations
   scheduler.py           APScheduler wrapper; runs callback at configured daily times
   commands.py            Telegram command handler + polling loop for live config changes
-config.yaml              Non-sensitive configuration (filters, schedule, active channels)
-.env                     Secrets (credentials) — gitignored, never committed
+tests/                   pytest suite; fixtures/nuxt_payload.json is a frozen Nuxt payload sample
+docs/                    WORKING_PLAN.md (status, backlog) · DEPLOYMENT.md (runbook, smoke test)
+config.example.yaml      Tracked template for config.yaml
+funda-bot.service        systemd unit for the VPS
+.env.example             Template for .env
 requirements.txt         Runtime dependencies
 requirements-dev.txt     Development dependencies (pytest)
 ```
+
+**Not in git** (gitignored): `config.yaml` (live filters, rewritten by Telegram
+commands) and `.env` (secrets).
 
 **Runtime files** (auto-created, gitignored):
 - `seen_listings.db` — SQLite database of delivered listing URLs
@@ -197,4 +210,7 @@ routine deploys and the dev workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - The bot uses the Dutch-language Funda endpoint (`/zoeken/koop`). The English endpoint (`/en/zoeken/koop`) excludes same-day listings even with `publication_date` set, so the Dutch endpoint is required for timely alerts.
 - `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged. Recommended maximum is **5 days**; do not exceed 10.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
+- The Nuxt payload is undocumented and changes without notice. When it does, the scraper
+  returns **no listings rather than an error**, so a quiet bot is not proof of a quiet market.
+  See the smoke test in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
 - On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete.

@@ -4,7 +4,7 @@ Living development plan for the Funda Scraper Bot, and the source of truth for
 sprint status and backlog priority. Update this file in the same session you
 change behaviour or status (see the stale-doc audit rule in [CLAUDE.md](../CLAUDE.md)).
 
-Last updated: 2026-08-15
+Last updated: 2026-11-16
 
 ## Status snapshot
 
@@ -18,6 +18,11 @@ Last updated: 2026-08-15
 - **Deployed (2026-06-25):** floor_area filter (URL param + post-filter + /setfloor),
   amenities filter (/addamenity /removeamenity), bedrooms sent as URL param.
   48/48 tests. Server filter values were updated to match.
+- **On `dev`, not yet deployed (2026-11-16):** ShallowRef parser fix — see the
+  incident below. 49/49 tests. **The server is still broken until `dev` → `main` is
+  merged and deployed.**
+- **On branch `feat/parse-mismatch-warning`, not merged:** WARNING when Funda reports
+  matches but 0 parse. 51/51 tests on that branch. Awaiting a merge decision.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -65,6 +70,26 @@ is visible to the caller.
 
 ---
 
+## Incident — ShallowRef payload change · FIXED on dev · 2026-11-16
+
+**Outage:** 2026-11-05 12:00 → fix deploy. Funda's Nuxt payload started wrapping the
+search-state `listings` list in `['ShallowRef', idx]`. `unwrap()` only knew
+`Ref`/`Reactive`/`ShallowReactive`, so every listing was dropped silently. `main.log`
+showed `Page 1: 0 listings (total available: N)` with N > 0 on 125 runs, with no
+warning. The owner caught it via two Funda e-mail alerts (published 11-10 and 11-12)
+that the bot never sent.
+
+**Fix (`fix/nuxt-shallowref`, merged to dev):** add `'ShallowRef'` to the unwrap
+tuple, plus a regression test using the live single-ShallowRef shape. It was verified
+against a saved live search page: total 2 → 2 listings.
+
+**Follow-up (`feat/parse-mismatch-warning`, unmerged):** log a WARNING when
+`totalListingsCount > 0` but 0 listings parse, or when the listings field isn't a
+list. Logging only: no Telegram alert, no retry. Alerting is still an open decision
+(see Known risks).
+
+---
+
 ## Sprint 3 — Setup wizard · PARKED
 
 The Phase-4 guided 6-step Telegram setup wizard lives on the unmerged
@@ -94,6 +119,9 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 ## Known risks
 
 - **Scraper fragility** — Funda can change the payload or block the UA at any time;
-  failures degrade to empty results, not errors. M4 fixture tests will catch
-  payload shape changes.
+  failures degrade to empty results, not errors. The M4 fixture tests **cannot**
+  detect an upstream change, because the fixture is a frozen snapshot. They only
+  guard against our own regressions, as the 2026-11-05 ShallowRef outage proved.
+  Detection relies on `main.log` (see the smoke test in
+  [DEPLOYMENT.md](DEPLOYMENT.md)). Nothing alerts on Telegram yet.
 - **Python 3.14.3** is bleeding-edge; deps are now pinned (M5).
