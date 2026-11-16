@@ -97,6 +97,20 @@ def test_parse_nuxt_no_payload():
     assert listings == [] and total == 0
 
 
+def test_parse_nuxt_shallowref_listings():
+    """Listings wrapped in a single ShallowRef (Funda's shape since 2026-11-05) still parse.
+
+    Unhandled, the wrapper leaked through as ['ShallowRef', idx], every element was
+    skipped, and the scrape logged '0 listings (total available: N)' with N > 0.
+    """
+    payload = _load_fixture('nuxt_payload.json')
+    payload[1] = ['ShallowRef', 3]  # was ShallowReactive -> Reactive -> [4]
+    listings, total = _parse_nuxt_listings(_html(payload))
+    assert total == 42
+    assert len(listings) == 1
+    assert listings[0]['title'] == 'Teststraat 1A'
+
+
 def test_parse_nuxt_empty_listing_list():
     """Payload with zero listings returns empty list; total still parses correctly."""
     payload = _load_fixture('nuxt_payload.json')
