@@ -34,6 +34,10 @@ logging.basicConfig(
         logging.StreamHandler(),
     ],
 )
+# APScheduler's INFO lines ("Running job", "Job executed", "Added job") were
+# 29% of main.log by 2026-11. Its warnings and errors (a missed run, a job
+# that raised) still get through; funda_bot.scheduler logs the schedule itself.
+logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
 
 _CONFIG_PATH = Path(__file__).resolve().parent / 'config.yaml'

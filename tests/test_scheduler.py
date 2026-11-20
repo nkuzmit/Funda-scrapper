@@ -26,3 +26,35 @@ def test_schedule_scrapes_parsing(monkeypatch):
     assert (12, 15) in called
     assert (16, 8) in called
     assert "started" in called
+
+
+def test_schedule_scrapes_logs_one_summary_line(monkeypatch, caplog):
+    """The schedule shows up as one INFO line, since APScheduler's own are muted."""
+    class DummyScheduler:
+        def __init__(self, **kwargs):
+            pass
+
+        def add_job(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(scheduler, "BackgroundScheduler", DummyScheduler)
+    with caplog.at_level("INFO", logger="funda_bot.scheduler"):
+        scheduler.schedule_scrapes([7, "bad", "12:15"], lambda: None)
+    assert "Scheduler started: 2 runs a day (Europe/Amsterdam) at 07:00, 12:15" in caplog.text
+
+
+def test_apscheduler_info_is_muted_but_warnings_pass():
+    """main.py silences APScheduler's per-run INFO lines, not its warnings/errors."""
+    import logging
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import main  # noqa: F401 — importing configures logging
+
+    log = logging.getLogger("apscheduler.executors.default")
+    assert not log.isEnabledFor(logging.INFO)
+    assert log.isEnabledFor(logging.WARNING)
+    assert log.isEnabledFor(logging.ERROR)
