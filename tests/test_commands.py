@@ -181,15 +181,18 @@ def test_scrape_snapshot_is_independent(monkeypatch):
     import sys
     sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
 
+    import main as main_mod
+
     captured = {}
 
     def fake_get_new_listings(filters):
         captured['filters'] = filters
         return []
 
-    monkeypatch.setattr('funda_bot.scraper.get_new_listings', fake_get_new_listings)
+    # Patch where main looks it up; patching funda_bot.scraper only worked when
+    # main happened to be first imported after the patch (else: a live Funda hit).
+    monkeypatch.setattr(main_mod, 'get_new_listings', fake_get_new_listings)
 
-    import main as main_mod
     config = {
         'filters': {'areas': ['utrecht/oudwijk'], 'price_min': 400000, 'price_max': 800000,
                     'min_bedrooms': 2, 'energy_labels': [], 'keywords': [], 'publication_days': 3},
