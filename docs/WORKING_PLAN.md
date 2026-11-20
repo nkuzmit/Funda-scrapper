@@ -146,12 +146,14 @@ then choose: log an expected read timeout below ERROR, keep anything else at ERR
 Falsifier for "benign": a `/run` or `/filters` sent during a timeout window that was
 never answered.
 
-### L6 — Scrub the 2 old-token log lines (one-off, server)
-`main.log.1` holds 2 lines from 2026-05-14 with the Telegram bot token unredacted. They
-predate the redaction fix and the token rotation (both 2026-06-25). The token differs
-from the current one (checked 2026-11-20), and the journal has no copies. Remove the 2
-lines in place; there's no code change. Optionally confirm the old token is revoked:
-`getMe` with it should return 401.
+### L6 — Scrub the 2 old-token log lines (one-off, server) · DONE · 2026-11-20
+`main.log.1` held 2 lines from 2026-05-14 with the Telegram bot token unredacted. They
+predate the redaction fix and the token rotation (both 2026-06-25). The token differed
+from the current one, and the journal had no copies. The token was replaced in place
+with `bot<redacted>`, the same form the code uses. The lines were kept, not deleted, so
+L5's counts still hold. Afterwards: 0 token matches in `main.log` and `main.log.1`, and
+both line counts unchanged. Not done (owner's choice): a `getMe` check that the old token
+is revoked.
 
 ---
 
