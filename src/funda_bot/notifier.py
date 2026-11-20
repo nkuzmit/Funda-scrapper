@@ -39,6 +39,19 @@ def _redact(text) -> str:
     return _TOKEN_RE.sub('bot<redacted>', str(text))
 
 
+def _error_detail(e: Exception) -> str:
+    """The exception text plus, for HTTP errors, the start of the response body.
+
+    Telegram explains a 400 only in the body (e.g. which media item it rejected);
+    the exception message alone just says 'Bad Request'.
+    """
+    detail = str(e)
+    response = getattr(e, 'response', None)
+    if response is not None and response.text:
+        detail += f' | response: {response.text[:300]}'
+    return _redact(detail)
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -63,10 +76,10 @@ def _request_with_retry(url: str, data: dict | None = None, params: dict | None 
             return response
         except Exception as e:
             if attempt <= _MAX_RETRIES:
-                logger.warning(f"Attempt {attempt} failed ({_redact(e)}), retrying in {_RETRY_DELAY}s...")
+                logger.warning(f"Attempt {attempt} failed ({_error_detail(e)}), retrying in {_RETRY_DELAY}s...")
                 time.sleep(_RETRY_DELAY)
             else:
-                logger.error(f"All {_MAX_RETRIES + 1} attempts failed: {_redact(e)}")
+                logger.error(f"All {_MAX_RETRIES + 1} attempts failed: {_error_detail(e)}")
     return None
 
 
@@ -143,7 +156,11 @@ class TelegramNotifier:
         else:
             url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}
-        return _request_with_retry(url, data) is not None
+        ok = _request_with_retry(url, data) is not None
+        if not ok and photos:
+            # Telegram fetches photo URLs itself; a rejected one is named only by index.
+            logger.warning(f"Telegram send failed; photo URLs were: {photos}")
+        return ok
 
 
 # ---------------------------------------------------------------------------
