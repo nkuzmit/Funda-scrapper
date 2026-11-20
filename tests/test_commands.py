@@ -348,3 +348,56 @@ def test_scrape_snapshot_is_independent(main_mod, monkeypatch):
     # mutate original after the snapshot was taken — captured copy must be unaffected
     config['filters']['price_min'] = 999999
     assert captured['filters']['price_min'] == 400000
+
+
+# ---------------------------------------------------------------------------
+# Polling loop — log levels (L5)
+# ---------------------------------------------------------------------------
+
+class _StopPolling(BaseException):
+    """Raised from the patched time.sleep to break out of the infinite loop."""
+
+
+def _poll_once(monkeypatch, error):
+    """Run poll_commands until its first error-path sleep; no real Telegram call."""
+    import requests
+    from funda_bot import commands
+
+    drain = MagicMock()
+    drain.json.return_value = {'result': []}
+    calls = iter([drain, error])
+
+    def fake_get(*args, **kwargs):
+        item = next(calls)
+        if isinstance(item, BaseException):
+            raise item
+        return item
+
+    def stop(seconds):
+        raise _StopPolling
+
+    monkeypatch.setattr(commands.requests, 'get', fake_get)
+    monkeypatch.setattr(commands.time, 'sleep', stop)
+    with pytest.raises(_StopPolling):
+        commands.poll_commands('123:abc', '1', {'filters': {}}, MagicMock())
+
+
+@pytest.mark.parametrize('error', [
+    __import__('requests').ReadTimeout('Read timed out. (read timeout=35)'),
+    __import__('requests').ConnectionError('Connection reset by peer'),
+])
+def test_polling_network_blip_is_a_warning(monkeypatch, caplog, error):
+    with caplog.at_level('WARNING', logger='funda_bot.commands'):
+        _poll_once(monkeypatch, error)
+    record = caplog.records[-1]
+    assert record.levelname == 'WARNING'
+    assert 'Polling error (network, retrying)' in record.getMessage()
+
+
+def test_polling_other_error_stays_an_error(monkeypatch, caplog):
+    """A bug (e.g. in a command handler) must still log at ERROR."""
+    with caplog.at_level('WARNING', logger='funda_bot.commands'):
+        _poll_once(monkeypatch, ValueError('handler bug'))
+    record = caplog.records[-1]
+    assert record.levelname == 'ERROR'
+    assert record.getMessage() == 'Polling error: handler bug'
