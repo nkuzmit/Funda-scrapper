@@ -53,21 +53,23 @@ def load_config():
         raise
 
 
-def scrape_and_notify(config: dict, notifiers: list) -> int:
+def scrape_and_notify(config: dict, notifiers: list) -> tuple[int, int]:
     """Scrape for new listings and dispatch to all active notification channels.
 
-    Returns the number of successfully delivered listings.
+    Returns (delivered, failed): listings delivered to at least one channel,
+    and listings every channel failed on (left unseen, retried next run).
     """
     try:
         with _CONFIG_LOCK:
             filters = copy.deepcopy(config['filters'])
         if not filters.get('areas'):
             logger.info("No areas configured — skipping scrape until setup is complete.")
-            return 0
+            return 0, 0
         listings = get_new_listings(filters)
         logger.info(f"Found {len(listings)} new listings")
 
         delivered_count = 0
+        failed_count = 0
         for listing in listings:
             if not matches_filters(listing, filters):
                 continue
@@ -86,12 +88,13 @@ def scrape_and_notify(config: dict, notifiers: list) -> int:
                 delivered_count += 1
             else:
                 logger.error(f"All channels failed for {listing['url']} — will retry next run")
+                failed_count += 1
 
-        return delivered_count
+        return delivered_count, failed_count
 
     except Exception as e:
         logger.error(f"Error in scrape_and_notify: {e}")
-        return 0
+        return 0, 0
 
 
 def main():
