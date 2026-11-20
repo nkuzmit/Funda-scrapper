@@ -69,6 +69,123 @@ def test_telegram_notify_failure_returns_false(monkeypatch):
     assert result is False
 
 
+def _telegram_400(description: str):
+    """Build the HTTPError requests raises for a Telegram 400 with *description*."""
+    import requests
+    resp = requests.Response()
+    resp.status_code = 400
+    resp._content = ('{"ok":false,"error_code":400,"description":"%s"}' % description).encode()
+    return requests.HTTPError('400 Client Error: Bad Request', response=resp)
+
+
+def test_telegram_falls_back_to_text_when_photos_fail(monkeypatch):
+    """If the album is rejected, the listing still goes out as a plain message."""
+    calls = []
+
+    def fake_post(url, data=None, timeout=None):
+        calls.append(url)
+        if 'sendMessage' not in url:
+            raise _telegram_400('Bad Request: wrong type of the web page content')
+        class R:
+            def raise_for_status(self): pass
+        return R()
+
+    monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    listing = {**LISTING, 'photos': ['https://example.com/a.jpg', 'https://example.com/b.jpg']}
+    result = TelegramNotifier('token', 'chat123').notify(listing)
+
+    assert result is True
+    assert 'sendMediaGroup' in calls[0]
+    assert 'sendMessage' in calls[-1]
+
+
+def _album_calls(monkeypatch, reject):
+    """Patch requests.post; reject(media_urls) returns a Telegram description to fail with, or None."""
+    import json
+    sent = []
+
+    def fake_post(url, data=None, timeout=None):
+        if 'sendMediaGroup' in url:
+            media = [m['media'] for m in json.loads(data['media'])]
+        elif 'sendPhoto' in url:
+            media = [data['photo']]
+        else:
+            media = []
+        sent.append(media)
+        description = reject(media)
+        if description:
+            raise _telegram_400(description)
+        class R:
+            def raise_for_status(self): pass
+        return R()
+
+    monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+    return sent
+
+
+def _reject_photo(bad_url):
+    """A Telegram that can't fetch *bad_url*, reporting it by 1-based album position."""
+    def reject(media):
+        if bad_url in media and len(media) > 1:
+            pos = media.index(bad_url) + 1
+            return f'Bad Request: failed to send message #{pos} with the error message \\"WEBPAGE_CURL_FAILED\\"'
+        return None
+    return reject
+
+
+def test_telegram_rejected_photo_is_replaced_by_a_spare(monkeypatch):
+    """8 photos: 6 sent; when #3 is rejected it is dropped and spare #7 moves up."""
+    photos = [f'https://example.com/{i}.jpg' for i in range(1, 9)]
+    sent = _album_calls(monkeypatch, _reject_photo(photos[2]))
+    result = TelegramNotifier('token', 'chat123').notify({**LISTING, 'photos': photos})
+
+    assert result is True
+    assert sent[0] == photos[:6]
+    assert sent[1] == photos[:2] + photos[3:7]
+
+
+def test_telegram_rejected_photo_without_spares_sends_fewer(monkeypatch):
+    """4 photos, #2 rejected, no spares: the album goes out with the other 3."""
+    photos = [f'https://example.com/{i}.jpg' for i in range(1, 5)]
+    sent = _album_calls(monkeypatch, _reject_photo(photos[1]))
+    result = TelegramNotifier('token', 'chat123').notify({**LISTING, 'photos': photos})
+
+    assert result is True
+    assert sent == [photos, [photos[0], photos[2], photos[3]]]
+
+
+def test_telegram_sends_at_most_six_photos(monkeypatch):
+    photos = [f'https://example.com/{i}.jpg' for i in range(1, 11)]
+    sent = _album_calls(monkeypatch, lambda media: None)
+    TelegramNotifier('token', 'chat123').notify({**LISTING, 'photos': photos})
+    assert sent == [photos[:6]]
+
+
+def test_permanent_4xx_is_not_retried_but_5xx_and_429_are(monkeypatch):
+    """A 400 fails the same way every time; 5xx and 429 are worth retrying."""
+    import requests
+    from funda_bot.notifier import _request_with_retry
+
+    def failing_post(status):
+        calls = []
+        def fake_post(url, data=None, timeout=None):
+            calls.append(url)
+            resp = requests.Response()
+            resp.status_code = status
+            resp._content = b'{}'
+            raise requests.HTTPError(f'{status} error', response=resp)
+        return calls, fake_post
+
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    for status, expected_calls in ((400, 1), (429, 3), (502, 3)):
+        calls, fake_post = failing_post(status)
+        monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+        response, error = _request_with_retry('https://example.com', data={'x': 1})
+        assert response is None and error is not None
+        assert len(calls) == expected_calls, status
+
+
 def test_telegram_http_error_logs_response_body_and_photos(monkeypatch, caplog):
     """A Telegram 400 logs its description (token redacted) and the photo URLs sent."""
     import requests
