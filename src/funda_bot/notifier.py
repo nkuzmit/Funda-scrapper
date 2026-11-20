@@ -64,8 +64,20 @@ def _fmt_price(price) -> str:
         return str(price) if price is not None else 'Unknown'
 
 
-def _request_with_retry(url: str, data: dict | None = None, params: dict | None = None) -> requests.Response | None:
-    """HTTP request with up to _MAX_RETRIES retries. Uses POST when data is provided, GET otherwise."""
+def _is_permanent(e: Exception) -> bool:
+    """True for a 4xx other than 429: resending the same request fails the same way."""
+    status = getattr(getattr(e, 'response', None), 'status_code', None)
+    return status is not None and 400 <= status < 500 and status != 429
+
+
+def _request_with_retry(
+    url: str, data: dict | None = None, params: dict | None = None
+) -> tuple[requests.Response | None, Exception | None]:
+    """HTTP request with up to _MAX_RETRIES retries. Uses POST when data is provided, GET otherwise.
+
+    Returns (response, None) on success, (None, last_error) on failure.
+    A permanent 4xx is not retried.
+    """
     for attempt in range(1, _MAX_RETRIES + 2):
         try:
             if data:
@@ -73,14 +85,18 @@ def _request_with_retry(url: str, data: dict | None = None, params: dict | None 
             else:
                 response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
-            return response
+            return response, None
         except Exception as e:
+            if _is_permanent(e):
+                logger.error(f"Request rejected, not retrying: {_error_detail(e)}")
+                return None, e
             if attempt <= _MAX_RETRIES:
                 logger.warning(f"Attempt {attempt} failed ({_error_detail(e)}), retrying in {_RETRY_DELAY}s...")
                 time.sleep(_RETRY_DELAY)
             else:
                 logger.error(f"All {_MAX_RETRIES + 1} attempts failed: {_error_detail(e)}")
-    return None
+                return None, e
+    return None, None  # unreachable: the loop always returns
 
 
 def _format_plain(listing: dict) -> str:
@@ -155,7 +171,8 @@ class TelegramNotifier:
         else:
             url = f"{api}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}
-        return _request_with_retry(url, data) is not None
+        response, _ = _request_with_retry(url, data)
+        return response is not None
 
     def notify(self, listing: dict) -> bool:
         message = _format_plain(listing)
@@ -225,7 +242,8 @@ class WhatsAppNotifier:
             'text': _format_plain(listing),
             'apikey': self.apikey,
         }
-        return _request_with_retry(self._API_URL, params=params) is not None
+        response, _ = _request_with_retry(self._API_URL, params=params)
+        return response is not None
 
 
 # ---------------------------------------------------------------------------

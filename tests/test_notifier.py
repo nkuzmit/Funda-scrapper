@@ -100,6 +100,30 @@ def test_telegram_falls_back_to_text_when_photos_fail(monkeypatch):
     assert 'sendMessage' in calls[-1]
 
 
+def test_permanent_4xx_is_not_retried_but_5xx_and_429_are(monkeypatch):
+    """A 400 fails the same way every time; 5xx and 429 are worth retrying."""
+    import requests
+    from funda_bot.notifier import _request_with_retry
+
+    def failing_post(status):
+        calls = []
+        def fake_post(url, data=None, timeout=None):
+            calls.append(url)
+            resp = requests.Response()
+            resp.status_code = status
+            resp._content = b'{}'
+            raise requests.HTTPError(f'{status} error', response=resp)
+        return calls, fake_post
+
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    for status, expected_calls in ((400, 1), (429, 3), (502, 3)):
+        calls, fake_post = failing_post(status)
+        monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+        response, error = _request_with_retry('https://example.com', data={'x': 1})
+        assert response is None and error is not None
+        assert len(calls) == expected_calls, status
+
+
 def test_telegram_http_error_logs_response_body_and_photos(monkeypatch, caplog):
     """A Telegram 400 logs its description (token redacted) and the photo URLs sent."""
     import requests
