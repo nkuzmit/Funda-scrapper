@@ -112,7 +112,7 @@ snapshot), which turns both cases into a failed run.
 
 ---
 
-## Sprint 4 — Log hygiene · IN PROGRESS (L4, L6 done; L5 open)
+## Sprint 4 — Log hygiene · IN PROGRESS (L4, L6 done; L5 built)
 
 Logs are kept by size (5 MB × 4 = 20 MB cap), not age. 8 months came to 5.3 MB
 (2026-03-19 → 2026-11-20). **Decision (2026-11-20): no age-based deletion.** The log is
@@ -139,7 +139,21 @@ Expect about 29% less volume. 74/74 tests. **Confirmed live** 2026-11-20: at sta
 `schedule.hours`. The 17:00 scheduled run logged 3 lines (fetch, page count, found)
 instead of 5, with 0 `apscheduler` INFO lines and 0 `apscheduler` warnings or errors.
 
-### L5 — Polling errors: diagnose, then decide the level
+### L5 — Polling errors · BUILT, not yet deployed (`fix/polling-log-level`)
+
+**Diagnosis (2026-11-20):** the errors run at 25–38 a day, spread evenly over all
+24 hours (157–218 per hour of day, nights included), so they aren't tied to scrapes or
+load. They're isolated: 1 of 599 November errors came within 10 s of the previous one.
+That's about 1% of polls. Commands aren't lost: `offset` isn't advanced on an error, so
+Telegram re-delivers on the next poll, at most about 40 s late. Runtime trace: an error
+at 2026-06-25 16:38:27 was followed by a `/run` scrape 6 s later. The owner reports no
+command ever went unanswered. Not known: whether Telegram answers late (after 35 s) or
+the connection stalls; testing that (option B) was judged not worth two deploys.
+**Decision: option A.** `requests.Timeout` / `requests.ConnectionError` now log as
+WARNING `Polling error (network, retrying): …`. Anything else, including a crash in a
+command handler, stays ERROR `Polling error: …`. 77/77 tests.
+
+Original plan, kept for the record:
 `poll_commands` logs every failed `getUpdates` as ERROR. That buries real errors when
 you search for `ERROR`. Counts (2026-03 → 2026-11-20): 4,401 `Read timed out (read
 timeout=35)`, 63 `Connection reset by peer`, 20 `Max retries exceeded`. They're rising:
@@ -189,6 +203,13 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 ---
 
 ## Open issues
+
+- **Commands sometimes feel slow to answer** — the owner reports it happening often,
+  e.g. 2026-11-20 15:19–15:20. Not measured: Telegram shows only minutes, and the bot
+  doesn't log when a command arrives. The polling errors (L5) don't explain the
+  15:19 case, since none were logged 15:14–15:22. A known contributor: `/run` blocks the
+  polling loop while it scrapes and delivers (15:20:25 → 15:20:42+ that day, including
+  about 9 s of photo retries), so commands sent meanwhile wait.
 
 - **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
   not run. Can't happen on the server today (areas are set); cut from the
