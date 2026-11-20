@@ -14,6 +14,7 @@ def schedule_scrapes(hours: list, callback):
     to minute 0.  All times are interpreted in Europe/Amsterdam timezone.
     """
     scheduler = BackgroundScheduler(timezone=_TIMEZONE)
+    times: list[str] = []
     for entry in hours:
         try:
             if isinstance(entry, str) and ':' in entry:
@@ -27,8 +28,10 @@ def schedule_scrapes(hours: list, callback):
             logger.warning(f"Skipping invalid schedule entry: {entry!r}")
             continue
         scheduler.add_job(callback, 'cron', hour=h, minute=m)
+        times.append(f'{h:02d}:{m:02d}')
     try:
         scheduler.start()
     except Exception as e:
         logger.error(f"Scheduler failed to start: {e}")
         raise
+    logger.info(f"Scheduler started: {len(times)} runs a day ({_TIMEZONE}) at {', '.join(times)}")
