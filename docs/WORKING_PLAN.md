@@ -24,7 +24,7 @@ Last updated: 2026-11-20
   available: 3)` (owner test with publication_days temporarily set to 10).
 - **Deployed (2026-11-20, `00e44bc`):** failed Telegram sends log Telegram's error
   description and the photo URLs.
-- **On `dev`, not yet deployed (2026-11-20):** Telegram photo handling — a rejected
+- **Deployed (2026-11-20 15:52, `4b442f0`):** Telegram photo handling — a rejected
   photo is dropped and replaced by a spare (scraper now keeps 10, sends 6), text-only
   fallback if the album still fails, no retries on a permanent 4xx; `/run` reports
   failed deliveries instead of "All caught up". 61/61 tests.
@@ -125,14 +125,14 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 
 ## Open issues
 
-- **Telegram `sendMediaGroup` 400** — fix on `dev`, not deployed. 2026-11-20:
+- **Telegram `sendMediaGroup` 400** — fix deployed 2026-11-20 15:52. 2026-11-20:
   Bekkerstraat 25 failed on two runs (15:20, 15:36) with `failed to send message #3
   with the error message "WEBPAGE_CURL_FAILED"` — Telegram could not download photo
   #3, although the server fetches it fine (`200 image/jpeg`). Why Telegram fails on
   it is unknown. The fix doesn't depend on that: skip the photo / fall back to text.
   Still unverified: that Telegram's `#N` is 1-based — the first live retry of
   Bekkerstraat after deploy will show it (`dropping it:` line, then delivery).
-- **`/run` said "All caught up" after a failed send** — fix on `dev`, not deployed.
+- **`/run` said "All caught up" after a failed send** — fix deployed 2026-11-20 15:52.
   A scrape that *errors* (HTTP error, bot-challenge) still reads as "All caught up";
   that's part of the health-signal gap in Known risks.
 - **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
