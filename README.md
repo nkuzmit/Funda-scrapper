@@ -10,6 +10,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 - Sends up to 6 listing photos as a Telegram album per notification; a photo Telegram can't fetch is replaced by a spare (or just dropped), and if the album still fails the listing goes out as text
 - Persists seen listings in SQLite to avoid duplicate notifications
 - Listings are only marked as seen after confirmed delivery — failed sends are retried on the next run
+- A failed scrape is never reported as "nothing new": after 2 failed runs in a row the bot sends a Telegram alert, and a message when it recovers
 - Scheduled daily runs at configurable times (Europe/Amsterdam timezone)
 - Filters configurable live via Telegram commands — no restart needed
 
@@ -210,7 +211,9 @@ routine deploys and the dev workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - The bot uses the Dutch-language Funda endpoint (`/zoeken/koop`). The English endpoint (`/en/zoeken/koop`) excludes same-day listings even with `publication_date` set, so the Dutch endpoint is required for timely alerts.
 - `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged. Recommended maximum is **5 days**; do not exceed 10.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
-- The Nuxt payload is undocumented and changes without notice. When it does, the scraper
-  returns **no listings rather than an error**, so a quiet bot is not proof of a quiet market.
-  See the smoke test in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
+- The Nuxt payload is undocumented and changes without notice. A page the scraper can't
+  read, or matches Funda reports that don't parse, count as a **failed scrape** (see the
+  alert above). A change that broke the listings *and* the match count at once would still
+  look like a quiet market, so a quiet bot is strong but not perfect evidence. See the smoke
+  test in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
 - On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete.
