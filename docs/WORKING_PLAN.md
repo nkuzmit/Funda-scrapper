@@ -112,7 +112,7 @@ snapshot), which turns both cases into a failed run.
 
 ---
 
-## Sprint 4 — Log hygiene · PLANNED
+## Sprint 4 — Log hygiene · IN PROGRESS (L4, L6 done; L5 open)
 
 Logs are kept by size (5 MB × 4 = 20 MB cap), not age. 8 months came to 5.3 MB
 (2026-03-19 → 2026-11-20). **Decision (2026-11-20): no age-based deletion.** The log is
@@ -129,14 +129,15 @@ about 40% of the volume:
 | `Polling error` ERRORs (4,486) | 13% |
 | Everything else | 5% |
 
-### L4 — Quiet APScheduler · BUILT, not yet deployed (`feat/quiet-apscheduler`)
+### L4 — Quiet APScheduler · DEPLOYED · 2026-11-20 16:45 (`77ac550`)
 The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 a missed
 run and a skipped overlapping run log at WARNING, and a job that raised logs at ERROR,
 so they still get through. The startup "Added job" lines are replaced by one line from
 `funda_bot.scheduler`: `Scheduler started: N runs a day (Europe/Amsterdam) at …`.
-Expect about 29% less volume. 74/74 tests. Verify after deploy: the `Scheduler
-started: 14 runs a day` line, and no `apscheduler` INFO lines after the next
-scheduled run.
+Expect about 29% less volume. 74/74 tests. **Confirmed live** 2026-11-20: at startup
+(16:45) the line read `Scheduler started: 14 runs a day … at 07:00 … 20:00`, matching
+`schedule.hours`. The 17:00 scheduled run logged 3 lines (fetch, page count, found)
+instead of 5, with 0 `apscheduler` INFO lines and 0 `apscheduler` warnings or errors.
 
 ### L5 — Polling errors: diagnose, then decide the level
 `poll_commands` logs every failed `getUpdates` as ERROR. That buries real errors when
