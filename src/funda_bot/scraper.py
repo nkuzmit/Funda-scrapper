@@ -12,8 +12,10 @@ How it works
 3. Find the inline <script> that starts with a JSON array and contains the
    marker string "fetchListings" — that is the Nuxt state payload.
 4. Parse the payload array.  Values in each object are integer indices back
-   into the same array (a shared-reference pool), or wrapped in Reactive/Ref
-   marker tuples.  We resolve them with a two-level unwrap helper.
+   into the same array (a shared-reference pool), or wrapped in
+   Ref/Reactive/ShallowReactive/ShallowRef marker tuples.  We resolve them
+   with an unwrap helper.  An unrecognised marker silently empties the
+   result (this happened when Funda switched to ShallowRef on 2026-11-05).
 5. Locate the search state dict (the one that has both "listings" and
    "totalListingsCount" keys) and iterate the listing objects.
 6. Normalise each listing to our internal dict format.
@@ -180,12 +182,12 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
         return [], 0
 
     def unwrap(x):
-        """Strip Ref/Reactive/ShallowReactive wrappers."""
+        """Strip Ref/Reactive/ShallowReactive/ShallowRef wrappers."""
         while (
             isinstance(x, list)
             and len(x) == 2
             and isinstance(x[0], str)
-            and x[0] in ('Ref', 'Reactive', 'ShallowReactive')
+            and x[0] in ('Ref', 'Reactive', 'ShallowReactive', 'ShallowRef')
         ):
             x = arr[x[1]]
         return x
@@ -211,9 +213,13 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     if not isinstance(total_count, int):
         total_count = 0
 
-    # The listings value is a doubly-wrapped reactive list of integer indices
+    # The listings value is a reactive-wrapped list of integer indices
     listing_indices = unwrap(unwrap(arr[search_state['listings']]))
     if not isinstance(listing_indices, list):
+        logger.warning(
+            f'Listings field is not a list ({type(listing_indices).__name__}) '
+            f'but Funda reports {total_count} matches — payload shape may have changed'
+        )
         return [], total_count
 
     results: list[dict] = []
@@ -276,6 +282,15 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
         except Exception as e:
             logger.debug(f'Skipping listing due to parse error: {e}')
             continue
+
+    # Funda counted matches but none survived parsing: a payload-shape change,
+    # not a quiet market. (The 2026-11-05 ShallowRef outage looked exactly
+    # like this for 11 days with no warning.)
+    if total_count > 0 and not results:
+        logger.warning(
+            f'Parsed 0 listings but Funda reports {total_count} matches — '
+            'payload shape may have changed'
+        )
 
     return results, total_count
 

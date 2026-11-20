@@ -74,7 +74,9 @@ Treat each of these as a data-collection request, not a fix request:
 
 - "It was working last week" / "we had a good version before"
 - "The bot went quiet" — quiet is ambiguous **by design**; check `main.log` for
-  `bot-challenge`, `Nuxt payload not found`, `Search state not found`, `HTTP error`
+  `bot-challenge`, `Nuxt payload not found`, `Search state not found`, `HTTP error`,
+  and `Parsed 0 listings but Funda reports` / `0 listings (total available: N)` with
+  N > 0 (a payload-shape change)
 - "Funda must have changed their site" — verify against a saved page first
 - "Just change the User-Agent" / "just bump the timeout" — that's masking, not fixing
 - "We tried X already and it didn't work" — re-verify under current conditions

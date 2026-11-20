@@ -37,6 +37,10 @@ systemctl restart funda-bot
 1. `systemctl status funda-bot` → `active (running)`.
 2. `tail -n 30 main.log` → a recent `Found N new listings` line, and **no**
    `bot-challenge` or `Nuxt payload not found` warnings.
+   On the `Page 1: N listings (total available: M)` line, **N must equal M** whenever
+   M ≤ 15. If N is 0 while M > 0, Funda changed the payload shape and the parser is
+   dropping listings (this was the 2026-11-05 ShallowRef outage). That case now also
+   logs `WARNING ... Parsed 0 listings but Funda reports M matches`.
 3. In Telegram, send `/run`. Within ~30s expect either listings or
    `All caught up — no new listings found.`
 4. If a listing arrives, confirm it includes **photos** (regression-prone — the
