@@ -69,6 +69,29 @@ def test_telegram_notify_failure_returns_false(monkeypatch):
     assert result is False
 
 
+def test_telegram_http_error_logs_response_body_and_photos(monkeypatch, caplog):
+    """A Telegram 400 logs its description (token redacted) and the photo URLs sent."""
+    import requests
+
+    def fake_post(url, data=None, timeout=None):
+        resp = requests.Response()
+        resp.status_code = 400
+        resp._content = b'{"ok":false,"description":"Bad Request: failed to send message #2"}'
+        raise requests.HTTPError(f'400 Client Error: Bad Request for url: {url}', response=resp)
+
+    monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    photos = ['https://example.com/a.jpg', 'https://example.com/b.jpg']
+    notifier = TelegramNotifier('123:secret-token', 'chat123')
+    with caplog.at_level('WARNING', logger='funda_bot.notifier'):
+        result = notifier.notify({**LISTING, 'photos': photos})
+
+    assert result is False
+    assert 'failed to send message #2' in caplog.text
+    assert 'https://example.com/b.jpg' in caplog.text
+    assert 'secret-token' not in caplog.text
+
+
 # ---------------------------------------------------------------------------
 # WhatsAppNotifier
 # ---------------------------------------------------------------------------
