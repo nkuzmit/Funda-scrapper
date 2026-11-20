@@ -210,6 +210,10 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
   15:19 case, since none were logged 15:14–15:22. A known contributor: `/run` blocks the
   polling loop while it scrapes and delivers (15:20:25 → 15:20:42+ that day, including
   about 9 s of photo retries), so commands sent meanwhile wait.
+  **Measuring it:** each command now logs `Command /x received Ns after sending`
+  (shipped with L5). After a few days of normal use, run `grep "received" main.log`
+  and compare slow ones with nearby `Polling error` warnings and `/run` scrapes before
+  choosing a fix.
 
 - **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
   not run. Can't happen on the server today (areas are set); cut from the
