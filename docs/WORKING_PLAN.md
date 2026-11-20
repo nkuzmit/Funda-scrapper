@@ -4,7 +4,7 @@ Living development plan for the Funda Scraper Bot, and the source of truth for
 sprint status and backlog priority. Update this file in the same session you
 change behaviour or status (see the stale-doc audit rule in [CLAUDE.md](../CLAUDE.md)).
 
-Last updated: 2026-11-16
+Last updated: 2026-11-20
 
 ## Status snapshot
 
@@ -18,9 +18,10 @@ Last updated: 2026-11-16
 - **Deployed (2026-06-25):** floor_area filter (URL param + post-filter + /setfloor),
   amenities filter (/addamenity /removeamenity), bedrooms sent as URL param.
   48/48 tests. Server filter values were updated to match.
-- **On `dev`, not yet deployed (2026-11-16):** ShallowRef parser fix (see the
-  incident below), plus a WARNING when Funda reports matches but 0 parse. 51/51 tests.
-  **The server is still broken until `dev` → `main` is merged and deployed.**
+- **Deployed (2026-11-20 15:14):** ShallowRef parser fix (see the incident below),
+  plus a WARNING when Funda reports matches but 0 parse. 51/51 tests. Server on
+  `ad5e01b`. **Not yet confirmed live:** Funda's total was 0 all of deploy day, so no
+  run has yet shown `N listings (total available: N)` with N > 0 on the server.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -68,20 +69,21 @@ is visible to the caller.
 
 ---
 
-## Incident — ShallowRef payload change · FIXED on dev · 2026-11-16
+## Incident — ShallowRef payload change · DEPLOYED · 2026-11-20
 
-**Outage:** 2026-11-05 12:00 → fix deploy. Funda's Nuxt payload started wrapping the
-search-state `listings` list in `['ShallowRef', idx]`. `unwrap()` only knew
-`Ref`/`Reactive`/`ShallowReactive`, so every listing was dropped silently. `main.log`
-showed `Page 1: 0 listings (total available: N)` with N > 0 on 125 runs, with no
-warning. The owner caught it via two Funda e-mail alerts (published 11-10 and 11-12)
-that the bot never sent.
+**Outage:** 2026-11-05 12:00 → 2026-11-20 15:14 (deploy), 15 days. Funda's Nuxt
+payload started wrapping the search-state `listings` list in `['ShallowRef', idx]`.
+`unwrap()` only knew `Ref`/`Reactive`/`ShallowReactive`, so every listing was dropped
+silently. `main.log` showed `Page 1: 0 listings (total available: N)` with N > 0 on
+172 runs (last on 2026-11-19 20:00), with no warning. The owner caught it via two
+Funda e-mail alerts (published 11-10 and 11-12) that the bot never sent. The fix sat
+on an unpushed local `dev` from 11-16 to 11-20, which added 4 days to the outage.
 
-**Fix (`fix/nuxt-shallowref`, merged to dev):** add `'ShallowRef'` to the unwrap
+**Fix (`fix/nuxt-shallowref`, deployed 2026-11-20):** add `'ShallowRef'` to the unwrap
 tuple, plus a regression test using the live single-ShallowRef shape. It was verified
 against a saved live search page: total 2 → 2 listings.
 
-**Follow-up (`feat/parse-mismatch-warning`, merged to dev):** log a WARNING when
+**Follow-up (`feat/parse-mismatch-warning`, deployed 2026-11-20):** log a WARNING when
 `totalListingsCount > 0` but 0 listings parse, or when the listings field isn't a
 list. Logging only: no Telegram alert, no retry. Alerting is still an open decision
 (see Known risks).
