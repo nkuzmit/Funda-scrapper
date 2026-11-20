@@ -111,8 +111,9 @@ def _request_with_retry(
 def _rejected_photo(error: Exception | None, n_sent: int) -> int | None:
     """0-based index of the album photo Telegram says it couldn't send, or None.
 
-    Telegram numbers album items from 1 (assumed from its error text; if that
-    is ever wrong, the resend fails too and notify() falls back to text).
+    Telegram numbers album items from 1 (confirmed live 2026-11-20: dropping
+    '#3' = photos[2] made the resend succeed). If that ever changes, the resend
+    fails too and notify() falls back to text.
     """
     response = getattr(error, 'response', None)
     if response is None:
