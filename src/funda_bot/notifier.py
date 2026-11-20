@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 _MAX_RETRIES = 2
 _RETRY_DELAY = 3  # seconds
 
+# Photos per notification. The scraper keeps a few more as spares: when
+# Telegram can't fetch one, it is dropped and the next spare moves up.
+_PHOTOS_PER_MESSAGE = 6
+_MAX_PHOTO_SKIPS = 3
+
+# Telegram's (undocumented) error text when one album item can't be fetched,
+# e.g. 'failed to send message #3 with the error message "WEBPAGE_CURL_FAILED"'.
+_REJECTED_PHOTO_RE = re.compile(r'failed to send message #(\d+)')
+
 # Telegram bot tokens are embedded in api.telegram.org URLs and leak through
 # requests' exception messages. Scrub them before logging.
 _TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
@@ -99,6 +108,22 @@ def _request_with_retry(
     return None, None  # unreachable: the loop always returns
 
 
+def _rejected_photo(error: Exception | None, n_sent: int) -> int | None:
+    """0-based index of the album photo Telegram says it couldn't send, or None.
+
+    Telegram numbers album items from 1 (assumed from its error text; if that
+    is ever wrong, the resend fails too and notify() falls back to text).
+    """
+    response = getattr(error, 'response', None)
+    if response is None:
+        return None
+    match = _REJECTED_PHOTO_RE.search(response.text or '')
+    if not match:
+        return None
+    index = int(match.group(1)) - 1
+    return index if 0 <= index < n_sent else None
+
+
 def _format_plain(listing: dict) -> str:
     """Format listing as a plain-text message."""
     return (
@@ -114,7 +139,7 @@ def _format_plain(listing: dict) -> str:
 
 def _format_html(listing: dict) -> str:
     """Format listing as an HTML email body."""
-    photos = listing.get('photos') or []
+    photos = (listing.get('photos') or [])[:_PHOTOS_PER_MESSAGE]
     imgs = ''.join(
         f'<img src="{p}" style="width:48%;margin:1%;border-radius:6px;">'
         for p in photos
@@ -155,8 +180,11 @@ class TelegramNotifier:
         self.bot_token = bot_token
         self.chat_id = chat_id
 
-    def _send(self, message: str, photos: list[str]) -> bool:
-        """One send: an album for 2+ photos, a photo for 1, plain text for none."""
+    def _send(self, message: str, photos: list[str]) -> tuple[bool, Exception | None]:
+        """One send: an album for 2+ photos, a photo for 1, plain text for none.
+
+        Returns (ok, error) — the error lets notify() see which photo was rejected.
+        """
         api = f"https://api.telegram.org/bot{self.bot_token}"
         if len(photos) > 1:
             media = [
@@ -171,21 +199,33 @@ class TelegramNotifier:
         else:
             url = f"{api}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}
-        response, _ = _request_with_retry(url, data)
-        return response is not None
+        response, error = _request_with_retry(url, data)
+        return response is not None, error
 
     def notify(self, listing: dict) -> bool:
         message = _format_plain(listing)
-        photos = listing.get('photos') or []
+        photos = list(listing.get('photos') or [])
 
-        if self._send(message, photos):
-            return True
-        if not photos:
+        # Telegram downloads photo URLs itself and can fail on one we can fetch
+        # fine (WEBPAGE_CURL_FAILED, 2026-11-20). Drop the photo it names and let
+        # the next spare move up; with no spares the album just gets smaller.
+        for _ in range(_MAX_PHOTO_SKIPS + 1):
+            batch = photos[:_PHOTOS_PER_MESSAGE]
+            ok, error = self._send(message, batch)
+            if ok:
+                return True
+            bad = _rejected_photo(error, len(batch))
+            if bad is None:
+                break
+            logger.warning(f"Telegram could not send photo {bad + 1} of {len(batch)}, dropping it: {batch[bad]}")
+            del photos[bad]
+
+        if not batch:  # the last attempt was already text-only
             return False
-        # Telegram downloads photo URLs itself and can fail on one we can fetch fine
-        # (WEBPAGE_CURL_FAILED, 2026-11-20). Never lose the listing over a photo.
-        logger.warning(f"Telegram send with photos failed, sending text only. Photo URLs were: {photos}")
-        return self._send(message, [])
+        # Never lose the listing over a photo.
+        logger.warning(f"Telegram send with photos failed, sending text only. Photo URLs were: {batch}")
+        ok, _ = self._send(message, [])
+        return ok
 
 
 # ---------------------------------------------------------------------------
