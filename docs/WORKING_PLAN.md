@@ -27,7 +27,13 @@ Last updated: 2026-11-20
 - **Deployed (2026-11-20 15:52, `4b442f0`):** Telegram photo handling — a rejected
   photo is dropped and replaced by a spare (scraper now keeps 10, sends 6), text-only
   fallback if the album still fails, no retries on a permanent 4xx; `/run` reports
-  failed deliveries instead of "All caught up". 61/61 tests.
+  failed deliveries instead of "All caught up". 61/61 tests. Trigger: Telegram
+  couldn't download one Bekkerstraat 25 photo (`WEBPAGE_CURL_FAILED`; the server
+  fetches it fine, cause unknown). **Confirmed live** 2026-11-20 15:53: Telegram
+  rejected photo #3, it was dropped without retries, and the listing was delivered
+  on the next send — which also confirms Telegram's `#N` is 1-based.
+- **Deployed (2026-11-20, `591275e`):** `.gitignore` covers rotated logs
+  (`main.log.1`–`.3`).
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -125,16 +131,10 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 
 ## Open issues
 
-- **Telegram `sendMediaGroup` 400** — fix deployed 2026-11-20 15:52. 2026-11-20:
-  Bekkerstraat 25 failed on two runs (15:20, 15:36) with `failed to send message #3
-  with the error message "WEBPAGE_CURL_FAILED"` — Telegram could not download photo
-  #3, although the server fetches it fine (`200 image/jpeg`). Why Telegram fails on
-  it is unknown. The fix doesn't depend on that: skip the photo / fall back to text.
-  Still unverified: that Telegram's `#N` is 1-based — the first live retry of
-  Bekkerstraat after deploy will show it (`dropping it:` line, then delivery).
-- **`/run` said "All caught up" after a failed send** — fix deployed 2026-11-20 15:52.
-  A scrape that *errors* (HTTP error, bot-challenge) still reads as "All caught up";
-  that's part of the health-signal gap in Known risks.
+- **A failed scrape reads as "All caught up"** — `/run` now reports failed
+  *deliveries*, but a scrape that errors (HTTP error, bot-challenge, parse failure)
+  still returns nothing and replies "All caught up". Part of the health-signal gap in
+  Known risks.
 - **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
   hourly. Not investigated; may be benign long-poll noise.
 - **Telegram alerting on parse mismatch** — see Known risks.
