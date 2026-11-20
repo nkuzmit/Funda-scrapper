@@ -20,8 +20,8 @@ Last updated: 2026-11-20
   48/48 tests. Server filter values were updated to match.
 - **Deployed (2026-11-20 15:14):** ShallowRef parser fix (see the incident below),
   plus a WARNING when Funda reports matches but 0 parse. 51/51 tests. Server on
-  `ad5e01b`. **Not yet confirmed live:** Funda's total was 0 all of deploy day, so no
-  run has yet shown `N listings (total available: N)` with N > 0 on the server.
+  `ad5e01b`. **Confirmed live** 2026-11-20 15:20: `Page 1: 3 listings (total
+  available: 3)` (owner test with publication_days temporarily set to 10).
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -69,7 +69,7 @@ is visible to the caller.
 
 ---
 
-## Incident — ShallowRef payload change · DEPLOYED · 2026-11-20
+## Incident — ShallowRef payload change · RESOLVED · 2026-11-20
 
 **Outage:** 2026-11-05 12:00 → 2026-11-20 15:14 (deploy), 15 days. Funda's Nuxt
 payload started wrapping the search-state `listings` list in `['ShallowRef', idx]`.
@@ -81,7 +81,8 @@ on an unpushed local `dev` from 11-16 to 11-20, which added 4 days to the outage
 
 **Fix (`fix/nuxt-shallowref`, deployed 2026-11-20):** add `'ShallowRef'` to the unwrap
 tuple, plus a regression test using the live single-ShallowRef shape. It was verified
-against a saved live search page: total 2 → 2 listings.
+against a saved live search page (total 2 → 2 listings), then on the server on
+2026-11-20 15:20 (total 3 → 3 listings).
 
 **Follow-up (`feat/parse-mismatch-warning`, deployed 2026-11-20):** log a WARNING when
 `totalListingsCount > 0` but 0 listings parse, or when the listings field isn't a
@@ -113,6 +114,19 @@ users without manual config editing. When that work resumes, the scope is:
 - **Multi-user**: each chat_id gets its own filter config (config keyed by chat_id).
 
 This is a meaningful scope expansion — treat it as a new sprint when prioritised.
+
+---
+
+## Open issues
+
+- **Telegram `sendMediaGroup` 400** — first seen 2026-11-20 15:20 (the only 3
+  occurrences in `main.log`): Bekkerstraat 25 failed all 3 attempts and was not marked
+  seen; the other 2 listings in that run delivered. Cause not yet diagnosed — the
+  notifier logs only the status line, not Telegram's error description. The listing
+  likely won't be retried, since it only matched the temporary 10-day filter.
+- **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
+  hourly. Not investigated; may be benign long-poll noise.
+- **Telegram alerting on parse mismatch** — see Known risks.
 
 ---
 
