@@ -112,6 +112,55 @@ snapshot), which turns both cases into a failed run.
 
 ---
 
+## Sprint 4 — Log hygiene · PLANNED
+
+Logs are kept by size (5 MB × 4 = 20 MB cap), not age. 8 months came to 5.3 MB
+(2026-03-19 → 2026-11-20). **Decision (2026-11-20): no age-based deletion.** The log is
+the bot's health record, and rare failures need a long history: the "alert after 2"
+threshold rested on 2 timeouts in July/August that a 30-day window would have deleted.
+Deleting `main.log` wouldn't remove the data anyway: every line also goes to the systemd
+journal (bot lines back to 2026-07-01, default retention). The real problem is noise —
+about 40% of the volume:
+
+| Content | Share of bytes |
+|---|---|
+| Scrape lines (search URL, page counts) | 53% |
+| APScheduler INFO ("Running job", "Job executed", "Added job") | 29% |
+| `Polling error` ERRORs (4,486) | 13% |
+| Everything else | 5% |
+
+### L4 — Quiet APScheduler · BUILT, not yet deployed (`feat/quiet-apscheduler`)
+The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 a missed
+run and a skipped overlapping run log at WARNING, and a job that raised logs at ERROR,
+so they still get through. The startup "Added job" lines are replaced by one line from
+`funda_bot.scheduler`: `Scheduler started: N runs a day (Europe/Amsterdam) at …`.
+Expect about 29% less volume. 74/74 tests. Verify after deploy: the `Scheduler
+started: 14 runs a day` line, and no `apscheduler` INFO lines after the next
+scheduled run.
+
+### L5 — Polling errors: diagnose, then decide the level
+`poll_commands` logs every failed `getUpdates` as ERROR. That buries real errors when
+you search for `ERROR`. Counts (2026-03 → 2026-11-20): 4,401 `Read timed out (read
+timeout=35)`, 63 `Connection reset by peer`, 20 `Max retries exceeded`. They're rising:
+2 in March, 207 in May, 613 in June, 953 in each of September and October (about 31
+a day, more than one an hour). Telegram's long poll should answer within 30 s, and the
+client waits 35 s. **Diagnose first, not assumed benign:** does a timeout ever line up
+with a command the owner sent that got no reply? Do they cluster by time of day? Only
+then choose: log an expected read timeout below ERROR, keep anything else at ERROR.
+Falsifier for "benign": a `/run` or `/filters` sent during a timeout window that was
+never answered.
+
+### L6 — Scrub the 2 old-token log lines (one-off, server) · DONE · 2026-11-20
+`main.log.1` held 2 lines from 2026-05-14 with the Telegram bot token unredacted. They
+predate the redaction fix and the token rotation (both 2026-06-25). The token differed
+from the current one, and the journal had no copies. The token was replaced in place
+with `bot<redacted>`, the same form the code uses. The lines were kept, not deleted, so
+L5's counts still hold. Afterwards: 0 token matches in `main.log` and `main.log.1`, and
+both line counts unchanged. Not done (owner's choice): a `getMe` check that the old token
+is revoked.
+
+---
+
 ## Sprint 3 — Setup wizard · PARKED
 
 The Phase-4 guided 6-step Telegram setup wizard lives on the unmerged
@@ -143,8 +192,6 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 - **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
   not run. Can't happen on the server today (areas are set); cut from the
   scrape-failure branch as a separate concern.
-- **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
-  hourly. Not investigated; may be benign long-poll noise.
 
 ---
 
