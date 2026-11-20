@@ -18,11 +18,9 @@ Last updated: 2026-11-16
 - **Deployed (2026-06-25):** floor_area filter (URL param + post-filter + /setfloor),
   amenities filter (/addamenity /removeamenity), bedrooms sent as URL param.
   48/48 tests. Server filter values were updated to match.
-- **On `dev`, not yet deployed (2026-11-16):** ShallowRef parser fix — see the
-  incident below. 49/49 tests. **The server is still broken until `dev` → `main` is
-  merged and deployed.**
-- **On branch `feat/parse-mismatch-warning`, not merged:** WARNING when Funda reports
-  matches but 0 parse. 51/51 tests on that branch. Awaiting a merge decision.
+- **On `dev`, not yet deployed (2026-11-16):** ShallowRef parser fix (see the
+  incident below), plus a WARNING when Funda reports matches but 0 parse. 51/51 tests.
+  **The server is still broken until `dev` → `main` is merged and deployed.**
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -83,7 +81,7 @@ that the bot never sent.
 tuple, plus a regression test using the live single-ShallowRef shape. It was verified
 against a saved live search page: total 2 → 2 listings.
 
-**Follow-up (`feat/parse-mismatch-warning`, unmerged):** log a WARNING when
+**Follow-up (`feat/parse-mismatch-warning`, merged to dev):** log a WARNING when
 `totalListingsCount > 0` but 0 listings parse, or when the listings field isn't a
 list. Logging only: no Telegram alert, no retry. Alerting is still an open decision
 (see Known risks).

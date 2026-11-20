@@ -111,6 +111,31 @@ def test_parse_nuxt_shallowref_listings():
     assert listings[0]['title'] == 'Teststraat 1A'
 
 
+def test_parse_nuxt_warns_when_count_but_no_listings(caplog):
+    """An unknown wrapper (total > 0, 0 parsed) logs a WARNING instead of passing silently."""
+    payload = _load_fixture('nuxt_payload.json')
+    payload[1] = ['SomeFutureRef', 3]
+    with caplog.at_level('WARNING', logger='funda_bot.scraper'):
+        listings, total = _parse_nuxt_listings(_html(payload))
+    assert listings == [] and total == 42
+    assert 'Funda reports 42 matches' in caplog.text
+
+
+def test_parse_nuxt_no_warning_on_success_or_quiet_day(caplog):
+    """No mismatch warning when listings parse, or when Funda genuinely reports 0."""
+    payload = _load_fixture('nuxt_payload.json')
+    quiet = _load_fixture('nuxt_payload.json')
+    quiet[3] = []                                          # no listings
+    quiet.append(0)                                        # total count of 0 ...
+    quiet[0]['totalListingsCount'] = len(quiet) - 1        # ... referenced by index, like Funda
+    with caplog.at_level('WARNING', logger='funda_bot.scraper'):
+        ok, _ = _parse_nuxt_listings(_html(payload))
+        listings, total = _parse_nuxt_listings(_html(quiet))
+    assert len(ok) == 1
+    assert listings == [] and total == 0
+    assert caplog.text == ''
+
+
 def test_parse_nuxt_empty_listing_list():
     """Payload with zero listings returns empty list; total still parses correctly."""
     payload = _load_fixture('nuxt_payload.json')
