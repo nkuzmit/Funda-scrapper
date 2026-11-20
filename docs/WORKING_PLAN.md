@@ -34,11 +34,15 @@ Last updated: 2026-11-20
   on the next send — which also confirms Telegram's `#N` is 1-based.
 - **Deployed (2026-11-20, `591275e`):** `.gitignore` covers rotated logs
   (`main.log.1`–`.3`).
-- **Built, not yet deployed (2026-11-20, `feat/scrape-failure-alert`):** a failed scrape
-  raises `ScrapeError` instead of returning `[]`. `/run` replies `⚠️ Run failed: <reason>`.
-  After 2 failed runs in a row the bot sends one Telegram alert, then a recovery message
-  (in-memory counter, so a restart resets it). 72/72 tests. Verified against two saved
-  live pages: 3 matches → 3 listings, 0 matches → no error.
+- **Deployed (2026-11-20 16:21, `fc262bf`):** a failed scrape raises `ScrapeError`
+  instead of returning `[]`. `/run` replies `⚠️ Run failed: <reason>`. After 2 failed
+  runs in a row the bot sends one Telegram alert, then a recovery message (in-memory
+  counter, so a restart resets it). 72/72 tests. Verified against two saved live pages
+  (3 matches → 3 listings, 0 matches → no error). **Confirmed live** 2026-11-20: the
+  startup scrape (16:21) and an owner `/run` (16:23) on the real filters returned
+  `0 listings (total available: 0)` with no error. A simulated failure on the server
+  (`get_new_listings` patched, no Funda request) sent the 🚨 alert on the 2nd failure
+  and ✅ on recovery; the owner confirmed both arrived.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -149,7 +153,7 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 - **Scraper fragility** — Funda can change the payload or block the UA at any time.
   The M4 fixture tests **cannot** detect an upstream change, because the fixture is a
   frozen snapshot. They only guard against our own regressions, as the 2026-11-05
-  ShallowRef outage proved. Detection is the scrape-failure alert (once deployed), plus
+  ShallowRef outage proved. Detection is the scrape-failure alert, plus
   `main.log` (see the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md)).
 - **What the scrape-failure alert can't see:**
   - *A change that zeroes the match count too.* On a 0-match page Funda sends the total
