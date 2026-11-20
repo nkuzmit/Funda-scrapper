@@ -348,3 +348,97 @@ def test_scrape_snapshot_is_independent(main_mod, monkeypatch):
     # mutate original after the snapshot was taken — captured copy must be unaffected
     config['filters']['price_min'] = 999999
     assert captured['filters']['price_min'] == 400000
+
+
+# ---------------------------------------------------------------------------
+# Polling loop — log levels (L5)
+# ---------------------------------------------------------------------------
+
+class _StopPolling(BaseException):
+    """Raised from the patched time.sleep to break out of the infinite loop."""
+
+
+def _poll(monkeypatch, *polls):
+    """Run poll_commands over canned getUpdates results until an error-path sleep.
+
+    Each item is a list of updates (a successful poll) or an exception to raise.
+    The last item must be an exception; its sleep(5) ends the loop. Returns the
+    handle_command mock. No real Telegram call is made.
+    """
+    from funda_bot import commands
+
+    def response(updates):
+        r = MagicMock()
+        r.json.return_value = {'result': updates}
+        return r
+
+    calls = iter([response([])] + [p if isinstance(p, BaseException) else response(p) for p in polls])
+
+    def fake_get(*args, **kwargs):
+        item = next(calls)
+        if isinstance(item, BaseException):
+            raise item
+        return item
+
+    def stop(seconds):
+        raise _StopPolling
+
+    handled = MagicMock()
+    monkeypatch.setattr(commands.requests, 'get', fake_get)
+    monkeypatch.setattr(commands.time, 'sleep', stop)
+    monkeypatch.setattr(commands, 'handle_command', handled)
+    with pytest.raises(_StopPolling):
+        commands.poll_commands('123:abc', '1', {'filters': {}}, MagicMock())
+    return handled
+
+
+def _poll_once(monkeypatch, error):
+    _poll(monkeypatch, error)
+
+
+def _update(update_id, text, date=None):
+    msg = {'chat': {'id': 1}, 'text': text}
+    if date is not None:
+        msg['date'] = date
+    return {'update_id': update_id, 'message': msg}
+
+
+def test_polling_logs_how_late_a_command_arrived(monkeypatch, caplog):
+    import re
+    import time as _time
+    import requests
+    sent = int(_time.time()) - 60
+    with caplog.at_level('INFO', logger='funda_bot.commands'):
+        handled = _poll(monkeypatch, [_update(1, '/setdate 10', sent)], requests.ReadTimeout('t'))
+    handled.assert_called_once()
+    line = next(r.getMessage() for r in caplog.records if 'received' in r.getMessage())
+    m = re.fullmatch(r'Command /setdate received (\d+)s after sending', line)
+    assert m and 59 <= int(m.group(1)) <= 62    # command name only, not its arguments
+
+
+def test_polling_without_a_date_says_so(monkeypatch, caplog):
+    import requests
+    with caplog.at_level('INFO', logger='funda_bot.commands'):
+        _poll(monkeypatch, [_update(1, '/filters')], requests.ReadTimeout('t'))
+    assert 'Command /filters received an unknown time after sending' in caplog.text
+
+
+@pytest.mark.parametrize('error', [
+    __import__('requests').ReadTimeout('Read timed out. (read timeout=35)'),
+    __import__('requests').ConnectionError('Connection reset by peer'),
+])
+def test_polling_network_blip_is_a_warning(monkeypatch, caplog, error):
+    with caplog.at_level('WARNING', logger='funda_bot.commands'):
+        _poll_once(monkeypatch, error)
+    record = caplog.records[-1]
+    assert record.levelname == 'WARNING'
+    assert 'Polling error (network, retrying)' in record.getMessage()
+
+
+def test_polling_other_error_stays_an_error(monkeypatch, caplog):
+    """A bug (e.g. in a command handler) must still log at ERROR."""
+    with caplog.at_level('WARNING', logger='funda_bot.commands'):
+        _poll_once(monkeypatch, ValueError('handler bug'))
+    record = caplog.records[-1]
+    assert record.levelname == 'ERROR'
+    assert record.getMessage() == 'Polling error: handler bug'

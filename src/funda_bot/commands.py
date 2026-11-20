@@ -345,7 +345,18 @@ def poll_commands(bot_token: str, chat_id: str, config: dict, scrape_fn):
                     continue
                 text = msg.get('text', '')
                 if text.startswith('/'):
+                    # How long the command took to reach us: measures the
+                    # "slow replies" open issue (Telegram shows only minutes).
+                    sent = msg.get('date')  # Unix seconds, set by Telegram
+                    lag = f"{time.time() - sent:.0f}s" if isinstance(sent, int) else "an unknown time"
+                    logger.info(f"Command {text.split()[0]} received {lag} after sending")
                     handle_command(text, config, bot_token, chat_id, scrape_fn)
+        except (requests.Timeout, requests.ConnectionError) as e:
+            # Network blips on the long poll: about 1% of polls, spread evenly
+            # over the day (2026-11 diagnosis). offset isn't advanced, so
+            # Telegram re-delivers any pending command on the next poll.
+            logger.warning(f"Polling error (network, retrying): {_redact(e)}")
+            time.sleep(5)
         except Exception as e:
             logger.error(f"Polling error: {_redact(e)}")
             time.sleep(5)
