@@ -2,7 +2,11 @@ import json
 from pathlib import Path
 
 import pytest
-from funda_bot.scraper import load_seen, mark_seen, get_new_listings, _photo_url, _parse_nuxt_listings, _build_url
+import requests
+from funda_bot.scraper import (
+    ScrapeError, load_seen, mark_seen, get_new_listings, scrape_funda,
+    _photo_url, _parse_nuxt_listings, _build_url,
+)
 
 _FIXTURE_DIR = Path(__file__).parent / 'fixtures'
 
@@ -84,17 +88,35 @@ def test_parse_nuxt_energy_label_none():
 
 
 def test_parse_nuxt_bot_challenge():
-    """Bot-challenge page returns empty results without raising."""
+    """Bot-challenge page is a failed scrape, not an empty result."""
     html = '<html><body>Je bent bijna op de pagina die je zocht</body></html>'
-    listings, total = _parse_nuxt_listings(html)
-    assert listings == [] and total == 0
+    with pytest.raises(ScrapeError, match='bot-challenge'):
+        _parse_nuxt_listings(html)
 
 
 def test_parse_nuxt_no_payload():
-    """Page with no matching script tag returns empty results without raising."""
+    """Page with no matching script tag is a failed scrape."""
     html = '<html><body><script>var x = 1;</script></body></html>'
-    listings, total = _parse_nuxt_listings(html)
-    assert listings == [] and total == 0
+    with pytest.raises(ScrapeError, match='Nuxt payload not found'):
+        _parse_nuxt_listings(html)
+
+
+def test_parse_nuxt_bad_json():
+    html = '<html><body><script>[1, "fetchListings", oops]</script></body></html>'
+    with pytest.raises(ScrapeError, match='Failed to parse Nuxt payload'):
+        _parse_nuxt_listings(html)
+
+
+def test_parse_nuxt_no_search_state():
+    with pytest.raises(ScrapeError, match='Search state not found'):
+        _parse_nuxt_listings(_html([{'fetchListings': None}]))
+
+
+def test_parse_nuxt_listings_field_not_a_list():
+    payload = _load_fixture('nuxt_payload.json')
+    payload[3] = {'not': 'a list'}
+    with pytest.raises(ScrapeError, match='Listings field is not a list'):
+        _parse_nuxt_listings(_html(payload))
 
 
 def test_parse_nuxt_shallowref_listings():
@@ -111,37 +133,45 @@ def test_parse_nuxt_shallowref_listings():
     assert listings[0]['title'] == 'Teststraat 1A'
 
 
-def test_parse_nuxt_warns_when_count_but_no_listings(caplog):
-    """An unknown wrapper (total > 0, 0 parsed) logs a WARNING instead of passing silently."""
+def test_parse_nuxt_count_but_no_listings_raises():
+    """An unknown wrapper (total > 0, 0 parsed) is a failed scrape, not a quiet day.
+
+    This is the 2026-11-05 ShallowRef outage shape: every listing was skipped.
+    """
     payload = _load_fixture('nuxt_payload.json')
     payload[1] = ['SomeFutureRef', 3]
-    with caplog.at_level('WARNING', logger='funda_bot.scraper'):
-        listings, total = _parse_nuxt_listings(_html(payload))
-    assert listings == [] and total == 42
-    assert 'Funda reports 42 matches' in caplog.text
+    with pytest.raises(ScrapeError, match='Funda reports 42 matches'):
+        _parse_nuxt_listings(_html(payload))
 
 
-def test_parse_nuxt_no_warning_on_success_or_quiet_day(caplog):
-    """No mismatch warning when listings parse, or when Funda genuinely reports 0."""
+def test_parse_nuxt_empty_list_with_nonzero_total_raises():
+    """An empty listings list while Funda reports matches is also a failure."""
     payload = _load_fixture('nuxt_payload.json')
+    payload[3] = []  # clear listing index list; leave totalListingsCount at 42
+    with pytest.raises(ScrapeError, match='Funda reports 42 matches'):
+        _parse_nuxt_listings(_html(payload))
+
+
+def test_parse_nuxt_quiet_day_is_not_a_failure():
+    """A 0-match page returns ([], 0) without raising.
+
+    Uses the live quiet-day shape (saved 2026-11-20): the total is
+    ['EmptyRef', i] -> the string '0', which unwrap() doesn't resolve.
+    """
     quiet = _load_fixture('nuxt_payload.json')
-    quiet[3] = []                                          # no listings
-    quiet.append(0)                                        # total count of 0 ...
-    quiet[0]['totalListingsCount'] = len(quiet) - 1        # ... referenced by index, like Funda
-    with caplog.at_level('WARNING', logger='funda_bot.scraper'):
-        ok, _ = _parse_nuxt_listings(_html(payload))
-        listings, total = _parse_nuxt_listings(_html(quiet))
-    assert len(ok) == 1
-    assert listings == [] and total == 0
-    assert caplog.text == ''
+    quiet[3] = []                                      # no listings
+    quiet += ['0', ['EmptyRef', len(quiet)]]           # '0' at n, EmptyRef at n+1
+    quiet[0]['totalListingsCount'] = len(quiet) - 1
+    assert _parse_nuxt_listings(_html(quiet)) == ([], 0)
 
 
-def test_parse_nuxt_empty_listing_list():
-    """Payload with zero listings returns empty list; total still parses correctly."""
-    payload = _load_fixture('nuxt_payload.json')
-    payload[3] = []  # clear listing index list; leave totalListingsCount alone
-    listings, total = _parse_nuxt_listings(_html(payload))
-    assert listings == [] and total == 42
+def test_scrape_funda_http_error_raises(monkeypatch):
+    """A network error is a failed scrape (no real request is made)."""
+    def boom(*args, **kwargs):
+        raise requests.ConnectionError('connection refused')
+    monkeypatch.setattr('funda_bot.scraper.requests.get', boom)
+    with pytest.raises(ScrapeError, match='HTTP error on page 1'):
+        scrape_funda({'areas': ['utrecht/oudwijk']})
 
 
 # ---------------------------------------------------------------------------

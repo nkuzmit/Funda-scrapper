@@ -140,15 +140,20 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
 
     elif cmd == '/run':
         _send(bot_token, chat_id, "Running scrape...")
-        delivered, failed = scrape_fn()
-        if failed:
-            # Never report a failed delivery as "nothing new" (2026-11-20).
+        result = scrape_fn()  # main.RunResult(delivered, failed, error)
+        # Never report a failed scrape or delivery as "nothing new" (2026-11-20).
+        if result.error:
             _send(
                 bot_token, chat_id,
-                f"⚠️ {failed} new listing(s) could not be sent ({delivered} delivered). "
-                "See main.log — will retry next run.",
+                f"⚠️ Run failed: {result.error}\n\nSee main.log — will retry next run.",
             )
-        elif delivered == 0:
+        elif result.failed:
+            _send(
+                bot_token, chat_id,
+                f"⚠️ {result.failed} new listing(s) could not be sent "
+                f"({result.delivered} delivered). See main.log — will retry next run.",
+            )
+        elif result.delivered == 0:
             _send(bot_token, chat_id, "All caught up — no new listings found.")
 
     elif cmd == '/setprice':

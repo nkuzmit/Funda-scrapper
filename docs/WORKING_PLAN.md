@@ -34,6 +34,11 @@ Last updated: 2026-11-20
   on the next send — which also confirms Telegram's `#N` is 1-based.
 - **Deployed (2026-11-20, `591275e`):** `.gitignore` covers rotated logs
   (`main.log.1`–`.3`).
+- **Built, not yet deployed (2026-11-20, `feat/scrape-failure-alert`):** a failed scrape
+  raises `ScrapeError` instead of returning `[]`. `/run` replies `⚠️ Run failed: <reason>`.
+  After 2 failed runs in a row the bot sends one Telegram alert, then a recovery message
+  (in-memory counter, so a restart resets it). 72/72 tests. Verified against two saved
+  live pages: 3 matches → 3 listings, 0 matches → no error.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -98,8 +103,8 @@ against a saved live search page (total 2 → 2 listings), then on the server on
 
 **Follow-up (`feat/parse-mismatch-warning`, deployed 2026-11-20):** log a WARNING when
 `totalListingsCount > 0` but 0 listings parse, or when the listings field isn't a
-list. Logging only: no Telegram alert, no retry. Alerting is still an open decision
-(see Known risks).
+list. Logging only at the time; superseded by the scrape-failure alert (see the status
+snapshot), which turns both cases into a failed run.
 
 ---
 
@@ -131,22 +136,30 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 
 ## Open issues
 
-- **A failed scrape reads as "All caught up"** — `/run` now reports failed
-  *deliveries*, but a scrape that errors (HTTP error, bot-challenge, parse failure)
-  still returns nothing and replies "All caught up". Part of the health-signal gap in
-  Known risks.
+- **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
+  not run. Can't happen on the server today (areas are set); cut from the
+  scrape-failure branch as a separate concern.
 - **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
   hourly. Not investigated; may be benign long-poll noise.
-- **Telegram alerting on parse mismatch** — see Known risks.
 
 ---
 
 ## Known risks
 
-- **Scraper fragility** — Funda can change the payload or block the UA at any time;
-  failures degrade to empty results, not errors. The M4 fixture tests **cannot**
-  detect an upstream change, because the fixture is a frozen snapshot. They only
-  guard against our own regressions, as the 2026-11-05 ShallowRef outage proved.
-  Detection relies on `main.log` (see the smoke test in
-  [DEPLOYMENT.md](DEPLOYMENT.md)). Nothing alerts on Telegram yet.
+- **Scraper fragility** — Funda can change the payload or block the UA at any time.
+  The M4 fixture tests **cannot** detect an upstream change, because the fixture is a
+  frozen snapshot. They only guard against our own regressions, as the 2026-11-05
+  ShallowRef outage proved. Detection is the scrape-failure alert (once deployed), plus
+  `main.log` (see the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md)).
+- **What the scrape-failure alert can't see:**
+  - *A change that zeroes the match count too.* On a 0-match page Funda sends the total
+    as `['EmptyRef', i]` → the string `'0'` (live page, 2026-11-20). `unwrap()` doesn't
+    know `EmptyRef`, so the parser coerces any non-int total to 0. That's what keeps
+    quiet days quiet (45% of runs), but it also means a shape change that broke both the
+    total and the listings would still read as a quiet day. Closing it means decoding
+    `EmptyRef`, then treating a non-int total as a failure; not done.
+  - *A partial parse* (Funda reports 5, 3 parse) is not a failure.
+  - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
+    crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
+    which is a second moving part.
 - **Python 3.14.3** is bleeding-edge; deps are now pinned (M5).
