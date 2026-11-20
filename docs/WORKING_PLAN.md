@@ -121,9 +121,10 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 
 - **Telegram `sendMediaGroup` 400** — first seen 2026-11-20 15:20 (the only 3
   occurrences in `main.log`): Bekkerstraat 25 failed all 3 attempts and was not marked
-  seen; the other 2 listings in that run delivered. Cause not yet diagnosed — the
-  notifier logs only the status line, not Telegram's error description. The listing
-  likely won't be retried, since it only matched the temporary 10-day filter.
+  seen; the other 2 listings in that run delivered. Cause not yet diagnosed. Since
+  2026-11-20 (`fix/telegram-error-description`) a failed send logs Telegram's error
+  description and the photo URLs; next step is a one-off retry (`/setdate 10`,
+  `/run`, back to 3) to capture the reason.
 - **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
   hourly. Not investigated; may be benign long-poll noise.
 - **Telegram alerting on parse mismatch** — see Known risks.
