@@ -139,28 +139,36 @@ class TelegramNotifier:
         self.bot_token = bot_token
         self.chat_id = chat_id
 
-    def notify(self, listing: dict) -> bool:
-        message = _format_plain(listing)
-        photos = listing.get('photos') or []
-
+    def _send(self, message: str, photos: list[str]) -> bool:
+        """One send: an album for 2+ photos, a photo for 1, plain text for none."""
+        api = f"https://api.telegram.org/bot{self.bot_token}"
         if len(photos) > 1:
             media = [
                 {'type': 'photo', 'media': url, **({"caption": message} if i == 0 else {})}
                 for i, url in enumerate(photos)
             ]
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendMediaGroup"
+            url = f"{api}/sendMediaGroup"
             data = {'chat_id': self.chat_id, 'media': json.dumps(media)}
         elif photos:
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendPhoto"
+            url = f"{api}/sendPhoto"
             data = {'chat_id': self.chat_id, 'caption': message, 'photo': photos[0]}
         else:
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            url = f"{api}/sendMessage"
             data = {'chat_id': self.chat_id, 'text': message}
-        ok = _request_with_retry(url, data) is not None
-        if not ok and photos:
-            # Telegram fetches photo URLs itself; a rejected one is named only by index.
-            logger.warning(f"Telegram send failed; photo URLs were: {photos}")
-        return ok
+        return _request_with_retry(url, data) is not None
+
+    def notify(self, listing: dict) -> bool:
+        message = _format_plain(listing)
+        photos = listing.get('photos') or []
+
+        if self._send(message, photos):
+            return True
+        if not photos:
+            return False
+        # Telegram downloads photo URLs itself and can fail on one we can fetch fine
+        # (WEBPAGE_CURL_FAILED, 2026-11-20). Never lose the listing over a photo.
+        logger.warning(f"Telegram send with photos failed, sending text only. Photo URLs were: {photos}")
+        return self._send(message, [])
 
 
 # ---------------------------------------------------------------------------

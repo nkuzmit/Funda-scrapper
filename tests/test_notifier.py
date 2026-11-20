@@ -69,6 +69,37 @@ def test_telegram_notify_failure_returns_false(monkeypatch):
     assert result is False
 
 
+def _telegram_400(description: str):
+    """Build the HTTPError requests raises for a Telegram 400 with *description*."""
+    import requests
+    resp = requests.Response()
+    resp.status_code = 400
+    resp._content = ('{"ok":false,"error_code":400,"description":"%s"}' % description).encode()
+    return requests.HTTPError('400 Client Error: Bad Request', response=resp)
+
+
+def test_telegram_falls_back_to_text_when_photos_fail(monkeypatch):
+    """If the album is rejected, the listing still goes out as a plain message."""
+    calls = []
+
+    def fake_post(url, data=None, timeout=None):
+        calls.append(url)
+        if 'sendMessage' not in url:
+            raise _telegram_400('Bad Request: wrong type of the web page content')
+        class R:
+            def raise_for_status(self): pass
+        return R()
+
+    monkeypatch.setattr('funda_bot.notifier.requests.post', fake_post)
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    listing = {**LISTING, 'photos': ['https://example.com/a.jpg', 'https://example.com/b.jpg']}
+    result = TelegramNotifier('token', 'chat123').notify(listing)
+
+    assert result is True
+    assert 'sendMediaGroup' in calls[0]
+    assert 'sendMessage' in calls[-1]
+
+
 def test_telegram_http_error_logs_response_body_and_photos(monkeypatch, caplog):
     """A Telegram 400 logs its description (token redacted) and the photo URLs sent."""
     import requests
