@@ -129,10 +129,14 @@ about 40% of the volume:
 | `Polling error` ERRORs (4,486) | 13% |
 | Everything else | 5% |
 
-### L4 — Quiet APScheduler
-Set the `apscheduler` logger to WARNING in `main.py`. Its own WARNING/ERROR lines (a
-missed run, a job that raised) still get through. Expect about 29% less volume.
-Verify: no `apscheduler` INFO lines after the next scheduled run.
+### L4 — Quiet APScheduler · BUILT, not yet deployed (`feat/quiet-apscheduler`)
+The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 a missed
+run and a skipped overlapping run log at WARNING, and a job that raised logs at ERROR,
+so they still get through. The startup "Added job" lines are replaced by one line from
+`funda_bot.scheduler`: `Scheduler started: N runs a day (Europe/Amsterdam) at …`.
+Expect about 29% less volume. 74/74 tests. Verify after deploy: the `Scheduler
+started: 14 runs a day` line, and no `apscheduler` INFO lines after the next
+scheduled run.
 
 ### L5 — Polling errors: diagnose, then decide the level
 `poll_commands` logs every failed `getUpdates` as ERROR. That buries real errors when

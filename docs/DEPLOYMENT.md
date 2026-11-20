@@ -34,7 +34,9 @@ systemctl restart funda-bot
 
 ## Smoke test (after every deploy)
 
-1. `systemctl status funda-bot` → `active (running)`.
+1. `systemctl status funda-bot` → `active (running)`, and `grep "Scheduler started"
+   main.log | tail -1` lists the same times as `schedule.hours` in the server's
+   `config.yaml`.
 2. `tail -n 30 main.log` → a recent `Found N new listings` line, and **no**
    `Scrape failed:` or `Error in scrape_and_notify` lines (the reason follows, e.g.
    `bot-challenge`, `Nuxt payload not found`, `Parsed 0 listings but Funda reports M
