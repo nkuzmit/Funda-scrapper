@@ -162,33 +162,60 @@ def test_setlabel_normalises_to_uppercase(ctx):
 # /run
 # ---------------------------------------------------------------------------
 
+@pytest.fixture()
+def main_mod(monkeypatch):
+    """The main module, with the consecutive-failure counter reset to 0.
+
+    Tests patch main.get_new_listings, never funda_bot.scraper's — patching the
+    latter can miss main's own reference and make a real Funda request.
+    """
+    import sys
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
+    import main
+    monkeypatch.setattr(main, '_failed_runs', 0)
+    return main
+
+
+def _run_result(delivered=0, failed=0, error=None):
+    import sys
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
+    from main import RunResult
+    return RunResult(delivered, failed, error)
+
+
 def test_run_reports_failed_deliveries(ctx):
     """A listing that failed to send must not be reported as 'All caught up'."""
     config, send = ctx
-    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(0, 1)))
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=_run_result(0, 1)))
     last = send.call_args_list[-1][0][2]
     assert 'could not be sent' in last and 'All caught up' not in last
 
 
+def test_run_reports_failed_scrape(ctx):
+    """A failed scrape must not be reported as 'All caught up'."""
+    config, send = ctx
+    result = _run_result(error='Funda returned a bot-challenge page')
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=result))
+    last = send.call_args_list[-1][0][2]
+    assert 'Run failed' in last and 'bot-challenge' in last
+    assert 'All caught up' not in last
+
+
 def test_run_all_caught_up_only_when_nothing_new(ctx):
     config, send = ctx
-    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(0, 0)))
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=_run_result()))
     assert 'All caught up' in send.call_args_list[-1][0][2]
 
 
 def test_run_silent_after_successful_delivery(ctx):
     """Delivered listings speak for themselves — only 'Running scrape...' is sent."""
     config, send = ctx
-    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(2, 0)))
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=_run_result(2, 0)))
     assert send.call_count == 1
 
 
-def test_scrape_and_notify_counts_failed_deliveries(monkeypatch):
+def test_scrape_and_notify_counts_failed_deliveries(main_mod, monkeypatch):
     """A listing every channel fails on is counted as failed and left unseen."""
-    import sys
-    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
-    import main as main_mod
-
     listings = [{'url': 'https://funda.nl/a', 'title': 'A'}, {'url': 'https://funda.nl/b', 'title': 'B'}]
     seen = []
     monkeypatch.setattr(main_mod, 'get_new_listings', lambda filters: listings)
@@ -199,8 +226,88 @@ def test_scrape_and_notify_counts_failed_deliveries(monkeypatch):
     notifier.notify.side_effect = lambda listing: listing['title'] == 'A'
     config = {'filters': {'areas': ['utrecht/oudwijk']}}
 
-    assert main_mod.scrape_and_notify(config, [notifier]) == (1, 1)
+    assert main_mod.scrape_and_notify(config, [notifier]) == (1, 1, None)
     assert seen == ['https://funda.nl/a']
+
+
+# ---------------------------------------------------------------------------
+# Failed scrapes and the consecutive-failure alert
+# ---------------------------------------------------------------------------
+
+_CONFIG = {'filters': {'areas': ['utrecht/oudwijk']}}
+
+
+def _failing(main_mod, monkeypatch):
+    from funda_bot.scraper import ScrapeError
+
+    def boom(filters):
+        raise ScrapeError('Funda returned a bot-challenge page')
+    monkeypatch.setattr(main_mod, 'get_new_listings', boom)
+
+
+def test_scrape_failure_is_reported_not_raised(main_mod, monkeypatch):
+    _failing(main_mod, monkeypatch)
+    result = main_mod.scrape_and_notify(_CONFIG, [])
+    assert result == (0, 0, 'Funda returned a bot-challenge page')
+
+
+def test_unexpected_error_is_a_failure_and_keeps_delivered_count(main_mod, monkeypatch):
+    """A crash mid-delivery still reports what was delivered, plus the error."""
+    listings = [{'url': 'https://funda.nl/a', 'title': 'A'}, {'url': 'https://funda.nl/b', 'title': 'B'}]
+    monkeypatch.setattr(main_mod, 'get_new_listings', lambda filters: listings)
+    monkeypatch.setattr(main_mod, 'matches_filters', lambda listing, filters: True)
+    monkeypatch.setattr(main_mod, 'mark_seen', lambda url: None)
+    notifier = MagicMock()
+    notifier.notify.side_effect = [True, RuntimeError('boom')]
+
+    result = main_mod.scrape_and_notify(_CONFIG, [notifier])
+    assert result.delivered == 1 and result.error == 'RuntimeError: boom'
+
+
+def test_alert_once_after_two_failures_then_recovery(main_mod, monkeypatch):
+    alert = MagicMock()
+    _failing(main_mod, monkeypatch)
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 0                       # one failure: a blip, retried quietly
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 1                       # two in a row: alert
+    assert 'failed 2 runs in a row' in alert.call_args[0][0]
+    assert 'bot-challenge' in alert.call_args[0][0]
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 1                       # still failing: no repeat
+
+    monkeypatch.setattr(main_mod, 'get_new_listings', lambda filters: [])
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 2
+    assert 'recovered after 3 failed runs' in alert.call_args[0][0]
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 2                       # healthy: silent
+
+
+def test_single_failure_then_success_sends_nothing(main_mod, monkeypatch):
+    alert = MagicMock()
+    _failing(main_mod, monkeypatch)
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    monkeypatch.setattr(main_mod, 'get_new_listings', lambda filters: [])
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    assert alert.call_count == 0
+    assert main_mod._failed_runs == 0
+
+
+def test_no_areas_skip_does_not_touch_the_counter(main_mod, monkeypatch):
+    """A skipped run is neither a failure nor a recovery."""
+    alert = MagicMock()
+    _failing(main_mod, monkeypatch)
+    main_mod.scrape_and_notify(_CONFIG, [], alert)
+    main_mod.scrape_and_notify({'filters': {'areas': []}}, [], alert)
+    assert main_mod._failed_runs == 1 and alert.call_count == 0
+
+
+def test_alert_without_telegram_is_only_logged(main_mod, monkeypatch):
+    """With no alert callable the run still completes (the message goes to the log)."""
+    _failing(main_mod, monkeypatch)
+    main_mod.scrape_and_notify(_CONFIG, [])
+    assert main_mod.scrape_and_notify(_CONFIG, []).error is not None
 
 
 # ---------------------------------------------------------------------------
@@ -220,14 +327,8 @@ def test_lock_released_after_mutation(ctx):
     _CONFIG_LOCK.release()
 
 
-def test_scrape_snapshot_is_independent(monkeypatch):
+def test_scrape_snapshot_is_independent(main_mod, monkeypatch):
     """scrape_and_notify must deepcopy filters so mid-scrape mutations don't corrupt it."""
-    import copy
-    import sys
-    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
-
-    import main as main_mod
-
     captured = {}
 
     def fake_get_new_listings(filters):
