@@ -14,11 +14,17 @@ How it works
 4. Parse the payload array.  Values in each object are integer indices back
    into the same array (a shared-reference pool), or wrapped in
    Ref/Reactive/ShallowReactive/ShallowRef marker tuples.  We resolve them
-   with an unwrap helper.  An unrecognised marker silently empties the
-   result (this happened when Funda switched to ShallowRef on 2026-11-05).
+   with an unwrap helper.  An unrecognised marker on the listings empties
+   the result (this happened when Funda switched to ShallowRef on
+   2026-11-05) — which now raises ScrapeError when Funda reports matches.
 5. Locate the search state dict (the one that has both "listings" and
    "totalListingsCount" keys) and iterate the listing objects.
 6. Normalise each listing to our internal dict format.
+
+Failure vs. a quiet day
+-----------------------
+A failed scrape raises ScrapeError; a quiet market returns an empty list.
+Never collapse the two — that hid the ShallowRef outage for 15 days.
 
 Pagination
 ----------
@@ -53,6 +59,10 @@ _PHOTO_WIDTH = 720
 # Kept per listing. The Telegram notifier sends 6 and uses the rest as spares
 # for photos Telegram fails to fetch. Search results carry 7-12 (2026-11-20).
 _MAX_PHOTOS = 10
+
+
+class ScrapeError(Exception):
+    """The scrape failed — distinct from a successful scrape that found nothing."""
 
 
 # ---------------------------------------------------------------------------
@@ -154,15 +164,12 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     """Extract normalised listing dicts and total count from a Funda HTML page.
 
     Returns (listings, total_count).  total_count is the number of matches
-    across all pages; listings contains only the current page.
+    across all pages; listings contains only the current page.  Raises
+    ScrapeError when the page can't be read — see the module docstring.
     """
     # Detect the bot-challenge page before attempting to parse
     if 'Je bent bijna op de pagina' in html or 'je bent bijna' in html.lower():
-        logger.warning(
-            'Funda returned a bot-challenge page — IP may be rate-limited. '
-            'The bot will retry on the next scheduled run.'
-        )
-        return [], 0
+        raise ScrapeError('Funda returned a bot-challenge page — IP may be rate-limited')
 
     # Find the Nuxt state payload script
     scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.DOTALL)
@@ -174,14 +181,12 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
             break
 
     if not payload_raw:
-        logger.warning('Nuxt payload not found in page — Funda may have changed structure')
-        return [], 0
+        raise ScrapeError('Nuxt payload not found in page — Funda may have changed structure')
 
     try:
         arr = json.loads(payload_raw)
     except json.JSONDecodeError as e:
-        logger.error(f'Failed to parse Nuxt payload: {e}')
-        return [], 0
+        raise ScrapeError(f'Failed to parse Nuxt payload: {e}') from e
 
     def unwrap(x):
         """Strip Ref/Reactive/ShallowReactive/ShallowRef wrappers."""
@@ -208,21 +213,22 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
             break
 
     if not search_state:
-        logger.warning('Search state not found in Nuxt payload')
-        return [], 0
+        raise ScrapeError('Search state not found in Nuxt payload')
 
     total_count = r(search_state['totalListingsCount'])
+    # On a 0-match page Funda sends ['EmptyRef', i] -> '0' (a string), which
+    # unwrap() doesn't know (verified on a live page, 2026-11-20).  Treating
+    # a non-int as 0 is what keeps quiet days quiet — don't make it an error.
     if not isinstance(total_count, int):
         total_count = 0
 
     # The listings value is a reactive-wrapped list of integer indices
     listing_indices = unwrap(unwrap(arr[search_state['listings']]))
     if not isinstance(listing_indices, list):
-        logger.warning(
+        raise ScrapeError(
             f'Listings field is not a list ({type(listing_indices).__name__}) '
             f'but Funda reports {total_count} matches — payload shape may have changed'
         )
-        return [], total_count
 
     results: list[dict] = []
     for li in listing_indices:
@@ -287,9 +293,9 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
 
     # Funda counted matches but none survived parsing: a payload-shape change,
     # not a quiet market. (The 2026-11-05 ShallowRef outage looked exactly
-    # like this for 11 days with no warning.)
+    # like this for 15 days with no warning.)
     if total_count > 0 and not results:
-        logger.warning(
+        raise ScrapeError(
             f'Parsed 0 listings but Funda reports {total_count} matches — '
             'payload shape may have changed'
         )
@@ -305,7 +311,9 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
     """Fetch listings from funda.nl matching *filters*.
 
     Scrapes up to *n_pages* pages (default 1).  Returns a list of normalised
-    listing dicts.  Invalid or unparseable listings are silently skipped.
+    listing dicts — empty on a quiet day.  Individual unparseable listings are
+    skipped; a page that can't be fetched or read raises ScrapeError (nothing
+    is marked seen, so the next run simply tries again).
     """
     all_listings: list[dict] = []
 
@@ -319,9 +327,8 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
         try:
             response = requests.get(url, headers=_HEADERS, timeout=15)
             response.raise_for_status()
-        except Exception as e:
-            logger.error(f'HTTP error on page {page}: {e}')
-            break
+        except requests.RequestException as e:
+            raise ScrapeError(f'HTTP error on page {page}: {e}') from e
 
         listings, total = _parse_nuxt_listings(response.text)
         logger.info(f'Page {page}: {len(listings)} listings (total available: {total})')
@@ -347,6 +354,7 @@ def get_new_listings(filters: dict, n_pages: int = 1) -> list[dict]:
 
     Does NOT mark listings as seen — the caller must invoke mark_seen(url)
     for each listing only after successful delivery to avoid silent loss.
+    Raises ScrapeError if the scrape failed (see scrape_funda).
     """
     listings = scrape_funda(filters, n_pages=n_pages)
     seen = load_seen()

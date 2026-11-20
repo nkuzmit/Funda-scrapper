@@ -39,8 +39,9 @@ venv/Scripts/python main.py          # run the bot locally
   code, `main.log`, or the running service, check it before asserting it. Prefer facts
   from the running system over prior-session memory that hasn't been re-verified.
   *The scraper is this project's cautionary tale*: it depends on Funda's undocumented
-  Nuxt payload, and every failure returns an empty list — so a wrong assumption about
-  payload shape is indistinguishable from a quiet day on the market.
+  Nuxt payload. Until 2026-11 every failure returned an empty list, so a wrong assumption
+  about payload shape was indistinguishable from a quiet day on the market — and a
+  shape change that zeroes the match count too still is.
 - **Follow existing conventions and patterns.** If something looks like it should
   change, raise it as a discussion before editing.
 - **Read the whole file before editing it** — not just the relevant function.
@@ -73,10 +74,10 @@ Answer all four in plain text, in the response, first:
 Treat each of these as a data-collection request, not a fix request:
 
 - "It was working last week" / "we had a good version before"
-- "The bot went quiet" — quiet is ambiguous **by design**; check `main.log` for
-  `bot-challenge`, `Nuxt payload not found`, `Search state not found`, `HTTP error`,
-  and `Parsed 0 listings but Funda reports` / `0 listings (total available: N)` with
-  N > 0 (a payload-shape change)
+- "The bot went quiet" — quiet is still ambiguous; check `main.log` for
+  `Scrape failed:` / `Error in scrape_and_notify` (the reason follows: `bot-challenge`,
+  `Nuxt payload not found`, `HTTP error`, `Parsed 0 listings but Funda reports`, …) and,
+  in pre-2026-11-20 logs, `0 listings (total available: N)` with N > 0
 - "Funda must have changed their site" — verify against a saved page first
 - "Just change the User-Agent" / "just bump the timeout" — that's masking, not fixing
 - "We tried X already and it didn't work" — re-verify under current conditions

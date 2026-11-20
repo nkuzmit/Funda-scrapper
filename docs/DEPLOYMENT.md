@@ -36,14 +36,17 @@ systemctl restart funda-bot
 
 1. `systemctl status funda-bot` → `active (running)`.
 2. `tail -n 30 main.log` → a recent `Found N new listings` line, and **no**
-   `bot-challenge` or `Nuxt payload not found` warnings.
-   On the `Page 1: N listings (total available: M)` line, **N must equal M** whenever
-   M ≤ 15. If N is 0 while M > 0, Funda changed the payload shape and the parser is
-   dropping listings (this was the 2026-11-05 ShallowRef outage). That case now also
-   logs `WARNING ... Parsed 0 listings but Funda reports M matches`.
+   `Scrape failed:` or `Error in scrape_and_notify` lines (the reason follows, e.g.
+   `bot-challenge`, `Nuxt payload not found`, `Parsed 0 listings but Funda reports M
+   matches` — the last one is a payload-shape change like the 2026-11-05 ShallowRef
+   outage). On the `Page 1: N listings (total available: M)` line, **N should equal M**
+   whenever M ≤ 15; a partial parse is not flagged as a failure.
 3. In Telegram, send `/run`. Within ~30s expect either listings or
-   `All caught up — no new listings found.` A `⚠️ N new listing(s) could not be
-   sent` reply means delivery failed — check `main.log`.
+   `All caught up — no new listings found.` Other replies:
+   - `⚠️ N new listing(s) could not be sent` — delivery failed, check `main.log`.
+   - `⚠️ Run failed: <reason>` — the scrape itself failed. One failure can be a blip;
+     after 2 failed runs in a row the bot sends a `🚨 Scraping has failed` alert on its
+     own, and `✅ Scraping recovered` once a run succeeds again.
 4. If a listing arrives, confirm it includes **photos** (regression-prone — the
    tiara-media backend). Photoless ⇒ first check `main.log` for `sending text only`
    (Telegram rejected the photos; the text fallback kicked in), else re-check
