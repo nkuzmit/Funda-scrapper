@@ -7,7 +7,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 - Fetches listings by extracting the Nuxt server-side payload from funda.nl (structured JSON data, no fragile HTML parsing)
 - Filters by area, price, bedrooms, floor area, energy label, publication date, amenities, and keywords
 - Notifications via **Telegram**, **Email (SMTP/HTML)**, and **WhatsApp (CallMeBot)**
-- Sends up to 6 listing photos as a Telegram album per notification
+- Sends up to 6 listing photos as a Telegram album per notification; a photo Telegram can't fetch is replaced by a spare (or just dropped), and if the album still fails the listing goes out as text
 - Persists seen listings in SQLite to avoid duplicate notifications
 - Listings are only marked as seen after confirmed delivery — failed sends are retried on the next run
 - Scheduled daily runs at configurable times (Europe/Amsterdam timezone)
