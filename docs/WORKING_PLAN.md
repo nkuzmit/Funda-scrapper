@@ -22,6 +22,12 @@ Last updated: 2026-11-20
   plus a WARNING when Funda reports matches but 0 parse. 51/51 tests. Server on
   `ad5e01b`. **Confirmed live** 2026-11-20 15:20: `Page 1: 3 listings (total
   available: 3)` (owner test with publication_days temporarily set to 10).
+- **Deployed (2026-11-20, `00e44bc`):** failed Telegram sends log Telegram's error
+  description and the photo URLs.
+- **On `dev`, not yet deployed (2026-11-20):** Telegram photo handling — a rejected
+  photo is dropped and replaced by a spare (scraper now keeps 10, sends 6), text-only
+  fallback if the album still fails, no retries on a permanent 4xx; `/run` reports
+  failed deliveries instead of "All caught up". 61/61 tests.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -119,12 +125,16 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 
 ## Open issues
 
-- **Telegram `sendMediaGroup` 400** — first seen 2026-11-20 15:20 (the only 3
-  occurrences in `main.log`): Bekkerstraat 25 failed all 3 attempts and was not marked
-  seen; the other 2 listings in that run delivered. Cause not yet diagnosed. Since
-  2026-11-20 (`fix/telegram-error-description`) a failed send logs Telegram's error
-  description and the photo URLs; next step is a one-off retry (`/setdate 10`,
-  `/run`, back to 3) to capture the reason.
+- **Telegram `sendMediaGroup` 400** — fix on `dev`, not deployed. 2026-11-20:
+  Bekkerstraat 25 failed on two runs (15:20, 15:36) with `failed to send message #3
+  with the error message "WEBPAGE_CURL_FAILED"` — Telegram could not download photo
+  #3, although the server fetches it fine (`200 image/jpeg`). Why Telegram fails on
+  it is unknown. The fix doesn't depend on that: skip the photo / fall back to text.
+  Still unverified: that Telegram's `#N` is 1-based — the first live retry of
+  Bekkerstraat after deploy will show it (`dropping it:` line, then delivery).
+- **`/run` said "All caught up" after a failed send** — fix on `dev`, not deployed.
+  A scrape that *errors* (HTTP error, bot-challenge) still reads as "All caught up";
+  that's part of the health-signal gap in Known risks.
 - **Telegram polling `Read timed out (read timeout=35)`** — logged as ERROR roughly
   hourly. Not investigated; may be benign long-poll noise.
 - **Telegram alerting on parse mismatch** — see Known risks.
