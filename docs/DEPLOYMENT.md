@@ -42,9 +42,12 @@ systemctl restart funda-bot
    dropping listings (this was the 2026-11-05 ShallowRef outage). That case now also
    logs `WARNING ... Parsed 0 listings but Funda reports M matches`.
 3. In Telegram, send `/run`. Within ~30s expect either listings or
-   `All caught up — no new listings found.`
+   `All caught up — no new listings found.` A `⚠️ N new listing(s) could not be
+   sent` reply means delivery failed — check `main.log`.
 4. If a listing arrives, confirm it includes **photos** (regression-prone — the
-   tiara-media backend). Photoless ⇒ re-check `scraper._photo_url`.
+   tiara-media backend). Photoless ⇒ first check `main.log` for `sending text only`
+   (Telegram rejected the photos; the text fallback kicked in), else re-check
+   `scraper._photo_url`.
 
 ## Server reference
 

@@ -159,6 +159,51 @@ def test_setlabel_normalises_to_uppercase(ctx):
 
 
 # ---------------------------------------------------------------------------
+# /run
+# ---------------------------------------------------------------------------
+
+def test_run_reports_failed_deliveries(ctx):
+    """A listing that failed to send must not be reported as 'All caught up'."""
+    config, send = ctx
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(0, 1)))
+    last = send.call_args_list[-1][0][2]
+    assert 'could not be sent' in last and 'All caught up' not in last
+
+
+def test_run_all_caught_up_only_when_nothing_new(ctx):
+    config, send = ctx
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(0, 0)))
+    assert 'All caught up' in send.call_args_list[-1][0][2]
+
+
+def test_run_silent_after_successful_delivery(ctx):
+    """Delivered listings speak for themselves — only 'Running scrape...' is sent."""
+    config, send = ctx
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=(2, 0)))
+    assert send.call_count == 1
+
+
+def test_scrape_and_notify_counts_failed_deliveries(monkeypatch):
+    """A listing every channel fails on is counted as failed and left unseen."""
+    import sys
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
+    import main as main_mod
+
+    listings = [{'url': 'https://funda.nl/a', 'title': 'A'}, {'url': 'https://funda.nl/b', 'title': 'B'}]
+    seen = []
+    monkeypatch.setattr(main_mod, 'get_new_listings', lambda filters: listings)
+    monkeypatch.setattr(main_mod, 'matches_filters', lambda listing, filters: True)
+    monkeypatch.setattr(main_mod, 'mark_seen', seen.append)
+
+    notifier = MagicMock()
+    notifier.notify.side_effect = lambda listing: listing['title'] == 'A'
+    config = {'filters': {'areas': ['utrecht/oudwijk']}}
+
+    assert main_mod.scrape_and_notify(config, [notifier]) == (1, 1)
+    assert seen == ['https://funda.nl/a']
+
+
+# ---------------------------------------------------------------------------
 # M3 — Thread safety
 # ---------------------------------------------------------------------------
 
@@ -181,15 +226,18 @@ def test_scrape_snapshot_is_independent(monkeypatch):
     import sys
     sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
 
+    import main as main_mod
+
     captured = {}
 
     def fake_get_new_listings(filters):
         captured['filters'] = filters
         return []
 
-    monkeypatch.setattr('funda_bot.scraper.get_new_listings', fake_get_new_listings)
+    # Patch where main looks it up; patching funda_bot.scraper only worked when
+    # main happened to be first imported after the patch (else: a live Funda hit).
+    monkeypatch.setattr(main_mod, 'get_new_listings', fake_get_new_listings)
 
-    import main as main_mod
     config = {
         'filters': {'areas': ['utrecht/oudwijk'], 'price_min': 400000, 'price_max': 800000,
                     'min_bedrooms': 2, 'energy_labels': [], 'keywords': [], 'publication_days': 3},

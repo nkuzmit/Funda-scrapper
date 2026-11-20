@@ -50,7 +50,9 @@ _DB_PATH = Path(__file__).resolve().parent.parent.parent / 'seen_listings.db'
 # legacy backend still used by some older listings.
 _PHOTO_HOST = 'https://cloud.funda.nl'
 _PHOTO_WIDTH = 720
-_MAX_PHOTOS = 6
+# Kept per listing. The Telegram notifier sends 6 and uses the rest as spares
+# for photos Telegram fails to fetch. Search results carry 7-12 (2026-11-20).
+_MAX_PHOTOS = 10
 
 
 # ---------------------------------------------------------------------------
