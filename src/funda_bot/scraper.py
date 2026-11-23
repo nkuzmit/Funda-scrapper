@@ -274,9 +274,13 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
                         photos.append(photo)
             thumbnail = photos[0] if photos else None
 
-            # url
+            # url — the listing's identity: without one it can't be delivered or
+            # marked seen.  A skip, so a renamed field fails the scrape (below).
             relative_url = r(obj.get('object_detail_page_relative_url'))
-            full_url = ('https://www.funda.nl' + relative_url) if relative_url else None
+            if not relative_url:
+                skipped['no url'] += 1
+                continue
+            full_url = 'https://www.funda.nl' + relative_url
 
             results.append({
                 'title':            f'{street} {number}{suffix}'.strip(),
@@ -352,11 +356,11 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
         if len(all_listings) >= total or not listings:
             break
 
-    # deduplicate by URL (multiple areas can yield duplicates)
+    # deduplicate by URL (every listing has one; the parser skips those without)
     seen_urls: set[str] = set()
     unique: list[dict] = []
     for listing in all_listings:
-        if listing['url'] and listing['url'] not in seen_urls:
+        if listing['url'] not in seen_urls:
             seen_urls.add(listing['url'])
             unique.append(listing)
 
