@@ -346,6 +346,39 @@ def test_send_success_logs_nothing(monkeypatch, caplog):
 
 
 # ---------------------------------------------------------------------------
+# _save_config — atomic write (C3)
+# ---------------------------------------------------------------------------
+
+_OLD_CONFIG = 'filters:\n  areas:\n  - utrecht/oudwijk\n'
+
+
+def test_save_config_crash_leaves_the_old_file(tmp_path, monkeypatch):
+    """A failure mid-write (e.g. disk full) must not leave config.yaml empty."""
+    from funda_bot import commands
+    path = tmp_path / 'config.yaml'
+    path.write_text(_OLD_CONFIG)
+    monkeypatch.setattr(commands, '_CONFIG_PATH', path)
+
+    def crash(*args, **kwargs):
+        raise OSError('No space left on device')
+    monkeypatch.setattr(commands.yaml, 'dump', crash)
+    with pytest.raises(OSError):
+        commands._save_config({'filters': {'areas': ['utrecht/wittevrouwen']}})
+    assert path.read_text() == _OLD_CONFIG
+
+
+def test_save_config_replaces_the_file_and_leaves_no_temp(tmp_path, monkeypatch):
+    import yaml
+    from funda_bot import commands
+    path = tmp_path / 'config.yaml'
+    path.write_text(_OLD_CONFIG)
+    monkeypatch.setattr(commands, '_CONFIG_PATH', path)
+    commands._save_config({'filters': {'areas': ['utrecht/wittevrouwen']}})
+    assert yaml.safe_load(path.read_text()) == {'filters': {'areas': ['utrecht/wittevrouwen']}}
+    assert [p.name for p in tmp_path.iterdir()] == ['config.yaml']
+
+
+# ---------------------------------------------------------------------------
 # M3 — Thread safety
 # ---------------------------------------------------------------------------
 

@@ -19,6 +19,7 @@ Commands
 """
 
 import logging
+import os
 import re
 import threading
 import time
@@ -94,9 +95,19 @@ def _send(bot_token: str, chat_id: str, text: str):
 
 
 def _save_config(config: dict):
-    """Write the in-memory config back to config.yaml."""
-    with open(_CONFIG_PATH, 'w') as f:
+    """Write the in-memory config back to config.yaml, atomically.
+
+    Writes a temp file and renames it over config.yaml, so a crash or a full
+    disk mid-write leaves the old file intact. Writing in place used to leave
+    an empty config.yaml that stopped the bot starting (review C3). A leftover
+    config.yaml.tmp is deliberately not gitignored: seeing it means a save failed.
+    """
+    tmp = _CONFIG_PATH.with_name(_CONFIG_PATH.name + '.tmp')
+    with open(tmp, 'w') as f:
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, _CONFIG_PATH)
 
 
 def _fmt_filters(filters: dict) -> str:
