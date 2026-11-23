@@ -65,6 +65,15 @@ Last updated: 2026-11-23
     `/setdate 3` (same value): both answered, both logged as received 1 s after sending.
     `config.yaml` was rewritten at the moment of `/setdate` (13:55:19) with an identical
     checksum and no `.tmp` left behind. 0 ERROR lines since the restart.
+- **Deployed (2026-11-23 14:11, `2cd494b`):** review action 4 (C4, `58b4310`). The parser
+  logs listings it drops as one WARNING per page: `Skipped K of L listings while parsing:
+  <reason> (n), …`. Before, they were dropped silently or at DEBUG. A partial parse is
+  still not a failure. 91/91 tests. Startup scrape: `0 listings (total available: 0)`,
+  0 WARNING/ERROR lines. **Not yet confirmed live:** a run where Funda reports matches.
+  If the WARNING shows on a page where N equals M, Funda's list holds non-listing entries
+  and the WARNING is noise (the falsifier).
+  Server logs 2026-03-19 → 2026-11-23 (3,562 page lines): N < M only on the 172 ShallowRef
+  outage runs (N = 0). A partial parse never happened.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -211,10 +220,11 @@ finding numbers). Worked one action at a time, each approved by the owner.
 
 1–3. **Done, deployed** — polling error replies (C1), send check (C2), config robustness
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
-4. **C4 — log listings the parser skips** (`scraper.py` parse loop: silent `continue`s
-   and a DEBUG line) as one WARNING per page. Visibility only. **Next.**
+4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
+   (`2cd494b`).
 5. **V1 — record the product direction** (owner's call): CLAUDE.md says single-user,
    Future Vision below says multi-user, and the 2026-08 "pivot" isn't written down.
+   **Next.**
 6. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
    Known-risks line below and README's "3.10+".
 7. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
@@ -226,6 +236,9 @@ finding numbers). Worked one action at a time, each approved by the owner.
    the server IP.
 10. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work.
 11. **Hygiene**: C8–C20, D10–D16 as they come up.
+12. **A listing without a URL is dropped silently** (found during C4, kept separate by
+    owner's choice). `scrape_funda`'s duplicate check skips it with no log line, after
+    it has already been counted in `Page N: X listings`.
 
 ---
 
@@ -297,7 +310,8 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
     quiet days quiet (45% of runs), but it also means a shape change that broke both the
     total and the listings would still read as a quiet day. Closing it means decoding
     `EmptyRef`, then treating a non-int total as a failure; not done.
-  - *A partial parse* (Funda reports 5, 3 parse) is not a failure.
+  - *A partial parse* (Funda reports 5, 3 parse) is not a failure. Since 2026-11-23 it
+    logs a `Skipped … listings while parsing` WARNING, but it doesn't alert.
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
     crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
     which is a second moving part.
