@@ -3,19 +3,8 @@
 Runs on the main thread (blocking). The BackgroundScheduler handles
 timed scrapes concurrently in a background thread.
 
-Commands
---------
-/help               — list all commands
-/filters            — show current active filters
-/run                — trigger an immediate scrape
-/setprice MIN MAX   — set price range (use "null" for no bound)
-/setrooms N         — set minimum bedrooms
-/setlabel A B ...   — set energy labels
-/setdate N          — set publication_days
-/addarea SLUG       — add a funda area slug (e.g. utrecht/oudwijk)
-/removearea SLUG    — remove a funda area slug
-/addkeyword WORD    — add a keyword filter
-/removekeyword WORD — remove a keyword filter
+The command list lives in HELP_TEXT below (what /help sends); README's
+command table mirrors it.
 """
 
 import logging

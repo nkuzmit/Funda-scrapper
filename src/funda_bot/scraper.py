@@ -8,7 +8,8 @@ HTML class selectors, no API key required.
 How it works
 ------------
 1. Build a search URL from filters (same query format Funda uses natively).
-2. Fetch the page with a browser-like User-Agent.
+2. Fetch the page with the User-Agent in _HEADERS (a link-preview crawler's,
+   facebookexternalhit/1.1 — not a browser's).
 3. Find the inline <script> that starts with a JSON array and contains the
    marker string "fetchListings" — that is the Nuxt state payload.
 4. Parse the payload array.  Values in each object are integer indices back
@@ -30,7 +31,7 @@ Pagination
 ----------
 Each page returns ~15 listings.  scrape_funda() accepts an optional
 n_pages argument (default 1) and adds &page=N to the URL for subsequent
-pages, sleeping _PAGE_DELAY seconds between requests.
+pages, sleeping _PAGE_DELAY_SECONDS between requests.
 """
 
 import json
