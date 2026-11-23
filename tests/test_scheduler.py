@@ -46,6 +46,16 @@ def test_schedule_scrapes_logs_one_summary_line(monkeypatch, caplog):
     assert "Scheduler started: 2 runs a day (Europe/Amsterdam) at 07:00, 12:15" in caplog.text
 
 
+def test_out_of_range_time_is_skipped_not_fatal(monkeypatch, caplog):
+    """'25:00' parses as numbers but APScheduler rejects it; skip it like a typo (C12)."""
+    monkeypatch.setattr(scheduler.BackgroundScheduler, "start", lambda self: None)
+    with caplog.at_level("INFO", logger="funda_bot.scheduler"):
+        scheduler.schedule_scrapes(["7:00", "25:00", "9:61", "12:00"], lambda: None)
+    assert "Skipping invalid schedule entry: '25:00'" in caplog.text
+    assert "Skipping invalid schedule entry: '9:61'" in caplog.text
+    assert "Scheduler started: 2 runs a day (Europe/Amsterdam) at 07:00, 12:00" in caplog.text
+
+
 def test_apscheduler_info_is_muted_but_warnings_pass():
     """main.py silences APScheduler's per-run INFO lines, not its warnings/errors."""
     import logging

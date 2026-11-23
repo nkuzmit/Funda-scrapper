@@ -46,6 +46,18 @@ Last updated: 2026-11-23
 - **Deployed (2026-11-20, last at 17:23, `6e93afb`):** Sprint 4, log hygiene. APScheduler
   is quiet, polling network errors log as WARNING, and each command logs how late it
   arrived. 79/79 tests. Details and live confirmation are in the Sprint 4 section below.
+- **On `dev`, not deployed (2026-11-23, `5d3d001`):** when Telegram answers `getUpdates`
+  with an error (`ok: false`, e.g. 401 revoked token, 409 second poller), polling logs
+  ERROR `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before,
+  it re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
+  80/80 tests. After deploy, check: `/filters` answers, the network WARNINGs carry on
+  as before, and no `Telegram replied` ERRORs appear.
+- **On `dev`, not deployed (2026-11-23, `9ead3f2`):** command replies, the no-areas
+  prompt and the scrape-failure alert log ERROR `Failed to send Telegram message: … |
+  response: …` (token redacted) when Telegram rejects the message. Before, a rejected
+  message left no trace (live fake-token call: 401, nothing logged). No retry, by owner's
+  choice. 82/82 tests. After deploy, check: `/filters` answers and no `Failed to send
+  Telegram message` ERRORs appear.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -213,15 +225,24 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
 ## Open issues
 
 - **Commands sometimes feel slow to answer** — the owner reports it happening often,
-  e.g. 2026-11-20 15:19–15:20. Not measured: Telegram shows only minutes, and the bot
-  doesn't log when a command arrives. The polling errors (L5) don't explain the
-  15:19 case, since none were logged 15:14–15:22. A known contributor: `/run` blocks the
-  polling loop while it scrapes and delivers (15:20:25 → 15:20:42+ that day, including
-  about 9 s of photo retries), so commands sent meanwhile wait.
-  **Measuring it:** each command now logs `Command /x received Ns after sending`
-  (deployed with L5, 2026-11-20 17:23). After a few days of normal use, run `grep "received" main.log`
-  and compare slow ones with nearby `Polling error` warnings and `/run` scrapes before
-  choosing a fix.
+  e.g. 2026-11-20 15:19–15:20. Telegram shows only minutes, so the chat can't time it.
+  The polling errors (L5) don't explain the 15:19 case, since none were logged
+  15:14–15:22. A known contributor: `/run` blocks the polling loop while it scrapes and
+  delivers (15:20:25 → 15:20:42+ that day, including about 9 s of photo retries), so
+  commands sent meanwhile wait.
+  **Measuring it:** each command logs `Command /x received Ns after sending` (deployed
+  with L5, 2026-11-20 17:23). Run `grep "received" main.log` and compare slow ones with
+  nearby `Polling error` warnings and `/run` scrapes. Samples so far: 3, all 0–3 s.
+  **Lead (2026-11-23, not acted on — owner's choice):** the delay can also be on the
+  reply side. A `/run` at 10:43 arrived in 1 s, but the bot took 10.15 s to send
+  "Running scrape..." (received 10:43:02.001 → scrape started 10:43:12.155, no send
+  error). That matches `_send`'s 10 s timeout. From the server, 30 connections to
+  `api.telegram.org` per route: IPv4 0 failed (max 0.07 s), IPv6 4 hung (6 s cap).
+  Python tries IPv6 first, and urllib3 silently falls back to the next address after
+  a timeout: 10 s for a send, up to 35 s for a poll. Possible fixes: force IPv4 in
+  `main.py`, prefer IPv4 in the server's `/etc/gai.conf`, or a shorter connect timeout.
+  Falsifier: after forcing IPv4, slow `received` lines continue or the ~28/day
+  `Polling error (network)` warnings don't drop.
 
 - **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
   not run. Can't happen on the server today (areas are set); cut from the
