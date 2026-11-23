@@ -4,7 +4,7 @@ Living development plan for the Funda Scraper Bot, and the source of truth for
 sprint status and backlog priority. Update this file in the same session you
 change behaviour or status (see the stale-doc audit rule in [CLAUDE.md](../CLAUDE.md)).
 
-Last updated: 2026-11-20
+Last updated: 2026-11-23
 
 ## Status snapshot
 
@@ -43,6 +43,9 @@ Last updated: 2026-11-20
   `0 listings (total available: 0)` with no error. A simulated failure on the server
   (`get_new_listings` patched, no Funda request) sent the 🚨 alert on the 2nd failure
   and ✅ on recovery; the owner confirmed both arrived.
+- **Deployed (2026-11-20, last at 17:23, `6e93afb`):** Sprint 4, log hygiene. APScheduler
+  is quiet, polling network errors log as WARNING, and each command logs how late it
+  arrived. 79/79 tests. Details and live confirmation are in the Sprint 4 section below.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -112,7 +115,7 @@ snapshot), which turns both cases into a failed run.
 
 ---
 
-## Sprint 4 — Log hygiene · IN PROGRESS (L4, L6 done; L5 built)
+## Sprint 4 — Log hygiene · DONE · 2026-11-22
 
 Logs are kept by size (5 MB × 4 = 20 MB cap), not age. 8 months came to 5.3 MB
 (2026-03-19 → 2026-11-20). **Decision (2026-11-20): no age-based deletion.** The log is
@@ -139,7 +142,12 @@ Expect about 29% less volume. 74/74 tests. **Confirmed live** 2026-11-20: at sta
 `schedule.hours`. The 17:00 scheduled run logged 3 lines (fetch, page count, found)
 instead of 5, with 0 `apscheduler` INFO lines and 0 `apscheduler` warnings or errors.
 
-### L5 — Polling errors · BUILT, not yet deployed (`fix/polling-log-level`)
+### L5 — Polling errors · DEPLOYED · 2026-11-20 17:23 (`6e93afb`)
+
+**Confirmed live** 2026-11-22 06:38, about 37 h after deploy: 43 polling errors, all
+WARNING `Polling error (network, retrying)` (about 28 a day, as diagnosed), 0 polling
+ERRORs, and 0 ERROR lines of any kind. The same deploy shipped the command-latency line
+(see Open issues); first samples: `/filters` 3 s, `/run` 0 s.
 
 **Diagnosis (2026-11-20):** the errors run at 25–38 a day, spread evenly over all
 24 hours (157–218 per hour of day, nights included), so they aren't tied to scrapes or
@@ -211,7 +219,7 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
   polling loop while it scrapes and delivers (15:20:25 → 15:20:42+ that day, including
   about 9 s of photo retries), so commands sent meanwhile wait.
   **Measuring it:** each command now logs `Command /x received Ns after sending`
-  (shipped with L5). After a few days of normal use, run `grep "received" main.log`
+  (deployed with L5, 2026-11-20 17:23). After a few days of normal use, run `grep "received" main.log`
   and compare slow ones with nearby `Polling error` warnings and `/run` scrapes before
   choosing a fix.
 
