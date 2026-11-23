@@ -311,6 +311,41 @@ def test_alert_without_telegram_is_only_logged(main_mod, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# _send — replies and alerts (C2)
+# ---------------------------------------------------------------------------
+
+def _telegram_reply(status, body):
+    import requests
+    r = requests.models.Response()
+    r.status_code = status
+    r.reason = 'Unauthorized' if status == 401 else 'OK'
+    r._content = body.encode()
+    r.url = 'https://api.telegram.org/bot123456:SECRETtoken/sendMessage'
+    return r
+
+
+def test_send_logs_a_rejected_message(monkeypatch, caplog):
+    """Telegram's error reply must leave an ERROR line with its reason, token redacted."""
+    from funda_bot import commands
+    body = '{"ok":false,"error_code":401,"description":"Unauthorized"}'
+    monkeypatch.setattr(commands.requests, 'post', lambda *a, **k: _telegram_reply(401, body))
+    with caplog.at_level('ERROR', logger='funda_bot.commands'):
+        commands._send('123456:SECRETtoken', '1', 'hello')
+    message = caplog.records[-1].getMessage()
+    assert message.startswith('Failed to send Telegram message: 401')
+    assert '"description":"Unauthorized"' in message
+    assert 'SECRETtoken' not in message
+
+
+def test_send_success_logs_nothing(monkeypatch, caplog):
+    from funda_bot import commands
+    monkeypatch.setattr(commands.requests, 'post', lambda *a, **k: _telegram_reply(200, '{"ok":true}'))
+    with caplog.at_level('DEBUG', logger='funda_bot.commands'):
+        commands._send('123456:SECRETtoken', '1', 'hello')
+    assert caplog.records == []
+
+
+# ---------------------------------------------------------------------------
 # M3 — Thread safety
 # ---------------------------------------------------------------------------
 
