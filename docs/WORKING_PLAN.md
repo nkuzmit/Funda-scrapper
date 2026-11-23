@@ -253,14 +253,32 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
     are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
     confirmed because the fix worked; amend plan and memory when a change is reverted;
     don't trust past commits or plan entries without re-checking.
-11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`), 2026-11-23, not
-    deployed.** Done ahead of V1 because it was small and logging-only. The CallMeBot
-    `apikey` and `phone` are now redacted like the Telegram token. It was latent: the
-    server's channels are `[telegram]` and no key is set.
-12. **Hygiene**: C8–C20, D10–D16 as they come up. C19, partly done 2026-11-23: the 27
-    local branches merged into `dev` are deleted. Still open, each the owner's call:
-    `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, `/root/funda-config.bak` on
-    the server.
+11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`),
+    2026-11-23, not deployed.** Done ahead of V1 because it was small and logging-only.
+    The CallMeBot `apikey` and `phone` are now redacted like the Telegram token. It was
+    latent: the server's channels are `[telegram]` and no key is set.
+12. **Hygiene**: C8–C20, D10–D16 as they come up.
+    - **Done on `dev`, 2026-11-23:**
+      - D10, D11: docstrings (`b83a091`).
+      - C15: one bot-challenge check instead of two (`24312e2`; no behaviour change).
+      - C18: pytest pinned (`dfabf68`).
+      - D16: README (`e2d1aea`).
+      - C19, local part: the 27 local branches merged into `dev` are deleted.
+    - **Still open, the owner's call:**
+      - C19 leftovers: `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, and
+        `/root/funda-config.bak` on the server.
+      - C20: the local `test_run.py` makes a real Funda request.
+      - D15: the ethos file's bot-challenge line ("no intervention needed") predates
+        the alert.
+    - **Still open, need a design choice:**
+      - C8 / D13: duplicated helpers and facts.
+      - C9 / D12: lock coverage.
+      - C10: unenforced input limits.
+      - C11: `/run` and a scheduled run can overlap.
+      - C14: repetitive add/remove handlers.
+      - C16: `network-online.target`.
+      - C17: HTML email escaping.
+      - D14: `docs/*` branches aren't in the stated branch model.
 
 ---
 
