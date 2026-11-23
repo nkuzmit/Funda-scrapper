@@ -170,7 +170,7 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     ScrapeError when the page can't be read — see the module docstring.
     """
     # Detect the bot-challenge page before attempting to parse
-    if 'Je bent bijna op de pagina' in html or 'je bent bijna' in html.lower():
+    if 'je bent bijna' in html.lower():   # "Je bent bijna op de pagina die je zocht"
         raise ScrapeError('Funda returned a bot-challenge page — IP may be rate-limited')
 
     # Find the Nuxt state payload script
