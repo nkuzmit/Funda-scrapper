@@ -160,7 +160,7 @@ When Telegram is configured, the bot accepts commands directly in the chat:
 | `/removeamenity bathtub` | Remove an amenity filter |
 | `/help` | List all commands |
 
-Filter changes take effect on the next scheduled run and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
+Filter changes take effect on the next run (scheduled, or `/run`) and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
 
 ---
 
@@ -181,6 +181,10 @@ funda-bot.service        systemd unit for the VPS
 .env.example             Template for .env
 requirements.txt         Runtime dependencies
 requirements-dev.txt     Development dependencies (pytest)
+CONTRIBUTING.md          Local setup, branch workflow, deploy command
+CLAUDE.md                Working rules for AI-assisted sessions
+.github/instructions/    The project's AK-47 ethos
+LICENSE                  MIT
 ```
 
 **Not in git** (gitignored): `config.yaml` (live filters, rewritten by Telegram
