@@ -4,8 +4,11 @@ A personal project, but these conventions keep deploys boring and safe.
 
 ## Local setup
 
+Use **Python 3.12**, the version production runs, so tests run on the same interpreter.
+If you don't have it, `uv python install 3.12.3` will install it.
+
 ```bash
-python3 -m venv venv
+python3.12 -m venv venv
 venv/Scripts/pip install -r requirements.txt -r requirements-dev.txt   # Windows
 # venv/bin/pip on Linux
 ```

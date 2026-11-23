@@ -252,8 +252,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    (tests, pins and docs only; the server's packages didn't change). The suite
    on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
    predated the M5 pins: APScheduler 3.11.2 and PyYAML 6.0.3 since 2026-03-19, never the
-   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
-   choice):** how routine tests run on 3.12. See Known risks.
+   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Owner's choice
+   (2026-11-23):** rebuild the local `venv` on 3.12.3, the same as production (option A;
+   B a second venv, C CI, D nothing were rejected). Done the same day. The old venv's
+   extra packages were leftovers: the HTML-parsing MVP (bs4, pandas), a one-day
+   `funda-scraper` library experiment (03-16), linters run once by hand, and
+   `git-filter-repo`, already used. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
    the `config.yaml` bootstrap. **Done 2026-11-23** (`58ec7b2`, tests only, in `main`):
    21 tests, 114 in total. Each was checked against a deliberate break in the code it
@@ -373,7 +377,11 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
     crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
     which is a second moving part.
-- **The test gate runs on a different Python than production.** Production runs 3.12.3
-  and the local `venv` runs 3.14.3. A one-off check (2026-11-23) passed on 3.10.11,
-  3.12.3 (with the server's exact packages) and 3.14.3. It found one test that only
-  worked on 3.13+. Routine `pytest` still runs on 3.14 only.
+- **Local and production can drift apart again.** Since 2026-11-23 the local `venv` runs
+  Python 3.12.3 with runtime packages identical to the server's (`pip freeze` diff
+  empty). Two ways it can drift:
+  - **Python:** the server's version follows Ubuntu 24.04. An OS upgrade changes it;
+    the venv doesn't follow.
+  - **Transitive deps:** `requirements.txt` pins only the 5 direct dependencies. A
+    fresh install pulls newer transitive packages (2026-11-23: urllib3 2.8.0 locally
+    against 2.6.3 on the server).

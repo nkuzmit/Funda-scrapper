@@ -23,7 +23,8 @@ venv/Scripts/python main.py          # run the bot locally
 
 ## Conventions
 
-- **venv Python only** — system Python (also 3.14.x) lacks the deps.
+- **venv Python only** — the venv is 3.12, like production; system Python (3.14.x)
+  lacks the deps.
 - **Test before commit**; `pytest` green is the gate.
 - **Branch model is 3-tier**: `feat/*`|`fix/*` → `dev` → `main`. `main` is the deploy
   trunk (**never commit directly**); `dev` is integration (**never accumulate
