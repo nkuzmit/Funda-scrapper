@@ -16,7 +16,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.10+ (tests pass on 3.10, 3.12 — what production runs — and 3.14)
 - Internet connection
 - At least one notification channel configured (see Setup)
 

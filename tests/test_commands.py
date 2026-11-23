@@ -383,7 +383,9 @@ def test_save_config_replaces_the_file_and_leaves_no_temp(tmp_path, monkeypatch)
 # ---------------------------------------------------------------------------
 
 def test_config_lock_is_threading_lock():
-    assert isinstance(_CONFIG_LOCK, threading.Lock)
+    # threading.Lock is a factory function before Python 3.13 (production runs
+    # 3.12), so isinstance() against it raises; compare with a real lock's type.
+    assert isinstance(_CONFIG_LOCK, type(threading.Lock()))
 
 
 def test_lock_released_after_mutation(ctx):
