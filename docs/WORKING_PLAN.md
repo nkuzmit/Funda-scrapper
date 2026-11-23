@@ -379,9 +379,7 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
     which is a second moving part.
 - **Local and production can drift apart again.** Since 2026-11-23 the local `venv` runs
   Python 3.12.3 with runtime packages identical to the server's (`pip freeze` diff
-  empty). Two ways it can drift:
-  - **Python:** the server's version follows Ubuntu 24.04. An OS upgrade changes it;
-    the venv doesn't follow.
-  - **Transitive deps:** `requirements.txt` pins only the 5 direct dependencies. A
-    fresh install pulls newer transitive packages (2026-11-23: urllib3 2.8.0 locally
-    against 2.6.3 on the server).
+  empty). `requirements.txt` pins all 10 packages, transitive ones included
+  (`1b05367`), so packages can't drift on their own. Python can: the server's version
+  follows Ubuntu 24.04. An OS upgrade changes it, and the venv doesn't follow. Re-check
+  `venv/bin/python -V` on the server after any OS upgrade.
