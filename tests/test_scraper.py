@@ -165,6 +165,52 @@ def test_parse_nuxt_quiet_day_is_not_a_failure():
     assert _parse_nuxt_listings(_html(quiet)) == ([], 0)
 
 
+def _skip_warnings(caplog):
+    return [
+        r.getMessage() for r in caplog.records
+        if r.name == 'funda_bot.scraper' and r.levelname == 'WARNING'
+    ]
+
+
+def test_parse_nuxt_skipped_listings_logged_as_one_warning(caplog):
+    """Listings the parser drops are counted by reason in one WARNING (review C4).
+
+    Before, they were skipped silently or at DEBUG, below the INFO log level.
+    """
+    payload = _load_fixture('nuxt_payload.json')
+    n = len(payload)
+    payload += [
+        {'no_id_here': 1},                   # n:   not a listing
+        {'id': 2, 'address': 'not-a-dict'},  # n+1: address not a dict
+    ]
+    payload[3] = [4, n, n + 1, 9999]         # 9999: index out of range -> exception
+    caplog.set_level('WARNING', logger='funda_bot.scraper')
+
+    listings, _ = _parse_nuxt_listings(_html(payload))
+
+    assert [l['title'] for l in listings] == ['Teststraat 1A']
+    assert _skip_warnings(caplog) == [
+        'Skipped 3 of 4 listings while parsing: no id (1), address not a dict (1), '
+        'IndexError: list index out of range (1)'
+    ]
+
+
+def test_parse_nuxt_clean_page_logs_no_warning(caplog):
+    caplog.set_level('WARNING', logger='funda_bot.scraper')
+    _parse_nuxt_listings(_html(_load_fixture('nuxt_payload.json')))
+    assert _skip_warnings(caplog) == []
+
+
+def test_parse_nuxt_all_skipped_logs_reasons_before_raising(caplog):
+    """On the outage shape the log says why every listing was dropped."""
+    payload = _load_fixture('nuxt_payload.json')
+    payload[1] = ['SomeFutureRef', 3]
+    caplog.set_level('WARNING', logger='funda_bot.scraper')
+    with pytest.raises(ScrapeError):
+        _parse_nuxt_listings(_html(payload))
+    assert _skip_warnings(caplog) == ['Skipped 2 of 2 listings while parsing: no id (2)']
+
+
 def test_scrape_funda_http_error_raises(monkeypatch):
     """A network error is a failed scrape (no real request is made)."""
     def boom(*args, **kwargs):
