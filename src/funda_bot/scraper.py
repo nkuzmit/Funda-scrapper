@@ -8,7 +8,8 @@ HTML class selectors, no API key required.
 How it works
 ------------
 1. Build a search URL from filters (same query format Funda uses natively).
-2. Fetch the page with a browser-like User-Agent.
+2. Fetch the page with the User-Agent in _HEADERS (a link-preview crawler's,
+   facebookexternalhit/1.1 — not a browser's).
 3. Find the inline <script> that starts with a JSON array and contains the
    marker string "fetchListings" — that is the Nuxt state payload.
 4. Parse the payload array.  Values in each object are integer indices back
@@ -30,7 +31,7 @@ Pagination
 ----------
 Each page returns ~15 listings.  scrape_funda() accepts an optional
 n_pages argument (default 1) and adds &page=N to the URL for subsequent
-pages, sleeping _PAGE_DELAY seconds between requests.
+pages, sleeping _PAGE_DELAY_SECONDS between requests.
 """
 
 import json
@@ -169,7 +170,7 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     ScrapeError when the page can't be read — see the module docstring.
     """
     # Detect the bot-challenge page before attempting to parse
-    if 'Je bent bijna op de pagina' in html or 'je bent bijna' in html.lower():
+    if 'je bent bijna' in html.lower():   # "Je bent bijna op de pagina die je zocht"
         raise ScrapeError('Funda returned a bot-challenge page — IP may be rate-limited')
 
     # Find the Nuxt state payload script
@@ -274,9 +275,13 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
                         photos.append(photo)
             thumbnail = photos[0] if photos else None
 
-            # url
+            # url — the listing's identity: without one it can't be delivered or
+            # marked seen.  A skip, so a renamed field fails the scrape (below).
             relative_url = r(obj.get('object_detail_page_relative_url'))
-            full_url = ('https://www.funda.nl' + relative_url) if relative_url else None
+            if not relative_url:
+                skipped['no url'] += 1
+                continue
+            full_url = 'https://www.funda.nl' + relative_url
 
             results.append({
                 'title':            f'{street} {number}{suffix}'.strip(),
@@ -352,11 +357,11 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
         if len(all_listings) >= total or not listings:
             break
 
-    # deduplicate by URL (multiple areas can yield duplicates)
+    # deduplicate by URL (every listing has one; the parser skips those without)
     seen_urls: set[str] = set()
     unique: list[dict] = []
     for listing in all_listings:
-        if listing['url'] and listing['url'] not in seen_urls:
+        if listing['url'] not in seen_urls:
             seen_urls.add(listing['url'])
             unique.append(listing)
 

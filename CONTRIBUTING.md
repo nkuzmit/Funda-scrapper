@@ -47,8 +47,12 @@ docs/whatever ────────┘        (deploy gate)
 After merging `dev` → `main`, deploy from the server:
 
 ```bash
-git pull origin main && systemctl restart funda-bot
+git pull origin main && venv/bin/pip install -q -r requirements.txt && systemctl restart funda-bot
 ```
+
+`pip install` makes the server's venv match `requirements.txt`, and does nothing when it
+already does. Skipping it let the server drift: it ran APScheduler 3.11.2 for 8 months
+while the pins said 3.10.4 (found 2026-11-23).
 
 Full install, the one-time config migration, and the post-deploy smoke test are in
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Plan and backlog: [docs/WORKING_PLAN.md](docs/WORKING_PLAN.md).

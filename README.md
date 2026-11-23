@@ -16,7 +16,7 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.10+ (tests pass on 3.10, 3.12 — what production runs — and 3.14)
 - Internet connection
 - At least one notification channel configured (see Setup)
 
@@ -26,9 +26,9 @@ A bot that monitors [funda.nl](https://www.funda.nl) for new house-for-sale list
 
 ### 1. Install dependencies
 
-```bash
-pip install -r requirements.txt
-```
+Create a virtualenv and install into it as shown in
+[CONTRIBUTING.md → Local setup](CONTRIBUTING.md#local-setup). Always run the bot and the
+tests with the venv's Python; the system Python doesn't have the dependencies.
 
 ### 2. Configure credentials
 
@@ -64,9 +64,8 @@ notifications:
 
 ### 4. Run the bot
 
-```bash
-python main.py
-```
+Run `main.py` with the venv's Python (command in
+[CONTRIBUTING.md → Local setup](CONTRIBUTING.md#local-setup)).
 
 ---
 
@@ -108,12 +107,17 @@ To use a different provider, pass `smtp_host` and `smtp_port` when constructing 
 Edit `config.yaml` to customise filters and schedule. Credentials are in `.env` only.
 `config.yaml` is gitignored; on first run the bot creates it from `config.example.yaml`.
 
+The bot reads `config.yaml` once, at startup. **Stop the bot before editing it by hand.**
+Any Telegram filter command rewrites the whole file from the bot's memory. That undoes
+hand edits made while it runs, and drops the file's comments. Filters are easiest to
+change with the [Telegram commands](#telegram-commands). Schedule changes need a restart.
+
 ```yaml
 notifications:
   channels: ["telegram"]        # active channels: telegram, email, whatsapp
 
 filters:
-  areas:                        # funda.nl area slugs; empty = no filter
+  areas:                        # funda.nl area slugs; empty = not configured yet (no scrape runs)
     - "utrecht/oudwijk"
   price_min: 550000             # null = no lower bound
   price_max: null               # null = no upper bound
@@ -131,7 +135,7 @@ schedule:
 
 **Area slugs** are neighbourhood path fragments from funda.nl. To find a slug: navigate to a neighbourhood on funda.nl, then copy the `city/neighbourhood` portion from the URL (e.g. `utrecht/oudwijk`).
 
-**Schedule times** are in `HH:MM` format (24-hour, Europe/Amsterdam timezone). The bot must be restarted to pick up schedule changes.
+**Schedule times** are in `HH:MM` format (24-hour, Europe/Amsterdam timezone).
 
 ---
 
@@ -156,7 +160,7 @@ When Telegram is configured, the bot accepts commands directly in the chat:
 | `/removeamenity bathtub` | Remove an amenity filter |
 | `/help` | List all commands |
 
-Filter changes take effect on the next scheduled run and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
+Filter changes take effect on the next run (scheduled, or `/run`) and are written back to `config.yaml` automatically. If no areas are configured on startup, the bot sends a help message prompting you to set up your filters.
 
 ---
 
@@ -177,6 +181,10 @@ funda-bot.service        systemd unit for the VPS
 .env.example             Template for .env
 requirements.txt         Runtime dependencies
 requirements-dev.txt     Development dependencies (pytest)
+CONTRIBUTING.md          Local setup, branch workflow, deploy command
+CLAUDE.md                Working rules for AI-assisted sessions
+.github/instructions/    The project's AK-47 ethos
+LICENSE                  MIT
 ```
 
 **Not in git** (gitignored): `config.yaml` (live filters, rewritten by Telegram
@@ -190,10 +198,7 @@ commands) and `.env` (secrets).
 
 ## Running Tests
 
-```bash
-pip install -r requirements-dev.txt
-pytest
-```
+With the venv's Python, as shown in [CONTRIBUTING.md → Local setup](CONTRIBUTING.md#local-setup).
 
 ---
 

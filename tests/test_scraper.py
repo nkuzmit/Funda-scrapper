@@ -211,6 +211,34 @@ def test_parse_nuxt_all_skipped_logs_reasons_before_raising(caplog):
     assert _skip_warnings(caplog) == ['Skipped 2 of 2 listings while parsing: no id (2)']
 
 
+def test_parse_nuxt_listing_without_url_is_a_logged_skip(caplog):
+    """A listing with no URL can't be delivered or marked seen: skip it visibly.
+
+    Before, it was parsed with url None and then dropped silently by
+    scrape_funda's duplicate check.
+    """
+    payload = _load_fixture('nuxt_payload.json')
+    n = len(payload)
+    payload.append(dict(payload[4], id=2, object_detail_page_relative_url=None))
+    payload[3] = [4, n]
+    caplog.set_level('WARNING', logger='funda_bot.scraper')
+
+    listings, _ = _parse_nuxt_listings(_html(payload))
+
+    assert [l['url'] for l in listings] == [
+        'https://www.funda.nl/koop/amsterdam/huis-12345678-teststraat-1a/'
+    ]
+    assert _skip_warnings(caplog) == ['Skipped 1 of 2 listings while parsing: no url (1)']
+
+
+def test_parse_nuxt_no_listing_has_url_raises():
+    """A renamed URL field would strip every listing: a failure, not a quiet day."""
+    payload = _load_fixture('nuxt_payload.json')
+    del payload[4]['object_detail_page_relative_url']
+    with pytest.raises(ScrapeError, match='Funda reports 42 matches'):
+        _parse_nuxt_listings(_html(payload))
+
+
 def test_scrape_funda_http_error_raises(monkeypatch):
     """A network error is a failed scrape (no real request is made)."""
     def boom(*args, **kwargs):

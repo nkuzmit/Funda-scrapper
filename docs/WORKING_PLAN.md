@@ -65,6 +65,15 @@ Last updated: 2026-11-23
     `/setdate 3` (same value): both answered, both logged as received 1 s after sending.
     `config.yaml` was rewritten at the moment of `/setdate` (13:55:19) with an identical
     checksum and no `.tmp` left behind. 0 ERROR lines since the restart.
+- **Deployed (2026-11-23 14:11, `2cd494b`):** review action 4 (C4, `58b4310`). The parser
+  logs listings it drops as one WARNING per page: `Skipped K of L listings while parsing:
+  <reason> (n), …`. Before, they were dropped silently or at DEBUG. A partial parse is
+  still not a failure. 91/91 tests. Startup scrape: `0 listings (total available: 0)`,
+  0 WARNING/ERROR lines. **Not yet confirmed live:** a run where Funda reports matches.
+  If the WARNING shows on a page where N equals M, Funda's list holds non-listing entries
+  and the WARNING is noise (the falsifier).
+  Server logs 2026-03-19 → 2026-11-23 (3,562 page lines): N < M only on the 172 ShallowRef
+  outage runs (N = 0). A partial parse never happened.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -152,9 +161,9 @@ about 40% of the volume:
 | Everything else | 5% |
 
 ### L4 — Quiet APScheduler · DEPLOYED · 2026-11-20 16:45 (`77ac550`)
-The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 a missed
-run and a skipped overlapping run log at WARNING, and a job that raised logs at ERROR,
-so they still get through. The startup "Added job" lines are replaced by one line from
+The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 and 3.11.2
+(production; both checked 2026-11-23) a missed run and a skipped overlapping run log at
+WARNING, and a job that raised logs at ERROR, so they still get through. The startup "Added job" lines are replaced by one line from
 `funda_bot.scheduler`: `Scheduler started: N runs a day (Europe/Amsterdam) at …`.
 Expect about 29% less volume. 74/74 tests. **Confirmed live** 2026-11-20: at startup
 (16:45) the line read `Scheduler started: 14 runs a day … at 07:00 … 20:00`, matching
@@ -207,25 +216,69 @@ is revoked.
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
-finding numbers). Worked one action at a time, each approved by the owner.
+finding numbers). Worked one action at a time. Order agreed with the owner 2026-11-23.
 
 1–3. **Done, deployed** — polling error replies (C1), send check (C2), config robustness
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
-4. **C4 — log listings the parser skips** (`scraper.py` parse loop: silent `continue`s
-   and a DEBUG line) as one WARNING per page. Visibility only. **Next.**
-5. **V1 — record the product direction** (owner's call): CLAUDE.md says single-user,
-   Future Vision below says multi-user, and the 2026-08 "pivot" isn't written down.
-6. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
-   Known-risks line below and README's "3.10+".
-7. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
-   the `config.yaml` bootstrap.
-8. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
+4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
+   (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
+5. **V1 — record the product direction** (owner's call, no code): CLAUDE.md says
+   single-user, Future Vision below says multi-user, and the 2026-08 "pivot" isn't
+   written down. If multi-user, C5, C7, C3/C12 and C11 move up.
+6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
+   duplicate check skips it with no log line, after it has already been counted in
+   `Page N: X listings`. **Done on `dev` (`25acd5e`), not deployed.** It's now a parser
+   skip (`no url`) in the C4 WARNING. If *every* listing lacks a URL while Funda
+   reports matches (a renamed field), the scrape raises `ScrapeError` and alerts.
+   Before, that read as a quiet day.
+7. **C6 — test on Python 3.12**, which production runs. **Done on `dev`, 2026-11-23,
+   not deployed** (tests, pins and docs only; nothing changes on the server). The suite
+   on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
+   predated the M5 pins: APScheduler 3.11.2 and PyYAML 6.0.3 since 2026-03-19, never the
+   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
+   choice):** how routine tests run on 3.12. See Known risks.
+8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
+   the `config.yaml` bootstrap. **Done on `dev`, 2026-11-23** (`58ec7b2`, tests only):
+   21 tests, 114 in total. Each was checked against a deliberate break in the code it
+   covers.
+9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
-9. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
-   retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
-   the server IP.
-10. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work.
-11. **Hygiene**: C8–C20, D10–D16 as they come up.
+   **Done on `dev`, 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
+   now runs `pip install`; the first deploy with it is the next one.
+10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
+    retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
+    the server IP. **D9 done 2026-11-23:** CLAUDE.md's warning now says never to push
+    `setup-wizard`, and why. **D8 is the owner's call** (which rules bind; retiring a
+    memory folder on the owner's machine). The rules that exist only in assistant memory
+    are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
+    confirmed because the fix worked; amend plan and memory when a change is reverted;
+    don't trust past commits or plan entries without re-checking.
+11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`),
+    2026-11-23, not deployed.** Done ahead of V1 because it was small and logging-only.
+    The CallMeBot `apikey` and `phone` are now redacted like the Telegram token. It was
+    latent: the server's channels are `[telegram]` and no key is set.
+12. **Hygiene**: C8–C20, D10–D16 as they come up.
+    - **Done on `dev`, 2026-11-23:**
+      - D10, D11: docstrings (`b83a091`).
+      - C15: one bot-challenge check instead of two (`24312e2`; no behaviour change).
+      - C18: pytest pinned (`dfabf68`).
+      - D16: README (`e2d1aea`).
+      - C19, local part: the 27 local branches merged into `dev` are deleted.
+    - **Still open, the owner's call:**
+      - C19 leftovers: `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, and
+        `/root/funda-config.bak` on the server.
+      - C20: the local `test_run.py` makes a real Funda request.
+      - D15: the ethos file's bot-challenge line ("no intervention needed") predates
+        the alert.
+    - **Still open, need a design choice:**
+      - C8 / D13: duplicated helpers and facts.
+      - C9 / D12: lock coverage.
+      - C10: unenforced input limits.
+      - C11: `/run` and a scheduled run can overlap.
+      - C14: repetitive add/remove handlers.
+      - C16: `network-online.target`.
+      - C17: HTML email escaping.
+      - D14: `docs/*` branches aren't in the stated branch model.
 
 ---
 
@@ -297,8 +350,12 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
     quiet days quiet (45% of runs), but it also means a shape change that broke both the
     total and the listings would still read as a quiet day. Closing it means decoding
     `EmptyRef`, then treating a non-int total as a failure; not done.
-  - *A partial parse* (Funda reports 5, 3 parse) is not a failure.
+  - *A partial parse* (Funda reports 5, 3 parse) is not a failure. Since 2026-11-23 it
+    logs a `Skipped … listings while parsing` WARNING, but it doesn't alert.
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
     crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
     which is a second moving part.
-- **Python 3.14.3** is bleeding-edge; deps are now pinned (M5).
+- **The test gate runs on a different Python than production.** Production runs 3.12.3
+  and the local `venv` runs 3.14.3. A one-off check (2026-11-23) passed on 3.10.11,
+  3.12.3 (with the server's exact packages) and 3.14.3. It found one test that only
+  worked on 3.13+. Routine `pytest` still runs on 3.14 only.

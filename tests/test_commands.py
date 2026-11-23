@@ -1,4 +1,5 @@
-"""Unit tests for handle_command — input validation (M1) and thread safety (M3)."""
+"""Unit tests for commands.py (commands, sending, saving, polling) and main.py
+(scrape_and_notify, the failure alert, load_config). No real Telegram or Funda call."""
 
 import threading
 from unittest.mock import MagicMock, patch
@@ -383,7 +384,9 @@ def test_save_config_replaces_the_file_and_leaves_no_temp(tmp_path, monkeypatch)
 # ---------------------------------------------------------------------------
 
 def test_config_lock_is_threading_lock():
-    assert isinstance(_CONFIG_LOCK, threading.Lock)
+    # threading.Lock is a factory function before Python 3.13 (production runs
+    # 3.12), so isinstance() against it raises; compare with a real lock's type.
+    assert isinstance(_CONFIG_LOCK, type(threading.Lock()))
 
 
 def test_lock_released_after_mutation(ctx):
@@ -528,3 +531,136 @@ def test_polling_other_error_stays_an_error(monkeypatch, caplog):
     record = caplog.records[-1]
     assert record.levelname == 'ERROR'
     assert record.getMessage() == 'Polling error: handler bug'
+
+
+# ---------------------------------------------------------------------------
+# C7 — access check, redaction in the polling loop
+# ---------------------------------------------------------------------------
+
+def test_polling_ignores_a_foreign_chat(monkeypatch, caplog):
+    """The chat-id check is the bot's only access control: other chats are ignored."""
+    import requests
+    foreign = {'update_id': 1, 'message': {'chat': {'id': 2}, 'text': '/setdate 10', 'date': 0}}
+    with caplog.at_level('INFO', logger='funda_bot.commands'):
+        handled = _poll(monkeypatch, [foreign, _update(2, '/filters')], requests.ReadTimeout('t'))
+    assert [c.args[0] for c in handled.call_args_list] == ['/filters']
+    assert '/setdate' not in caplog.text
+
+
+@pytest.mark.parametrize('error, level', [
+    (__import__('requests').ConnectionError(
+        "HTTPSConnectionPool(host='api.telegram.org', port=443): Max retries exceeded "
+        "with url: /bot123:abc/getUpdates?offset=0&timeout=30"), 'WARNING'),
+    (ValueError('unexpected reply from https://api.telegram.org/bot123:abc/getUpdates'), 'ERROR'),
+])
+def test_polling_errors_redact_the_token(monkeypatch, caplog, error, level):
+    """requests puts the URL, token included, in its exception text."""
+    with caplog.at_level('WARNING', logger='funda_bot.commands'):
+        _poll_once(monkeypatch, error)
+    record = caplog.records[-1]
+    assert record.levelname == level
+    assert 'bot<redacted>/getUpdates' in record.getMessage()
+    assert '123:abc' not in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# C7 — the six list commands, /help, unknown commands
+# ---------------------------------------------------------------------------
+
+_LIST_COMMANDS = [
+    # add, remove, filter key, argument as typed, as stored
+    ('/addarea', '/removearea', 'areas', 'utrecht/oudwijk', 'utrecht/oudwijk'),
+    ('/addkeyword', '/removekeyword', 'keywords', 'Tuin', 'tuin'),
+    ('/addamenity', '/removeamenity', 'amenities', 'Bathtub', 'bathtub'),
+]
+
+
+@pytest.mark.parametrize('add, remove, key, typed, stored', _LIST_COMMANDS)
+def test_list_command_round_trip(add, remove, key, typed, stored):
+    config = _make_config()
+    send = MagicMock()
+    with patch('funda_bot.commands._send', send), patch('funda_bot.commands._save_config') as save:
+        handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
+        assert config['filters'][key] == [stored]
+        handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
+        assert config['filters'][key] == [stored]
+        assert send.call_args[0][2] == f'Already in list: {stored}'
+        handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
+        assert config['filters'][key] == []
+        handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
+        assert send.call_args[0][2] == f'Not in list: {stored}'
+    assert save.call_count == 2    # only the real add and remove write config.yaml
+
+
+@pytest.mark.parametrize('add, remove, key, typed, stored', _LIST_COMMANDS)
+def test_list_command_when_the_key_is_missing(add, remove, key, typed, stored):
+    """A config.yaml without the key (e.g. hand-edited) neither crashes nor loses the add."""
+    config = _make_config()
+    del config['filters'][key]
+    with patch('funda_bot.commands._send') as send, patch('funda_bot.commands._save_config'):
+        handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
+        assert send.call_args[0][2] == f'Not in list: {stored}'
+        handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
+    assert config['filters'][key] == [stored]
+
+
+@pytest.mark.parametrize('cmd', [c for row in _LIST_COMMANDS for c in row[:2]])
+def test_list_command_without_argument_sends_usage(ctx, cmd):
+    config, send = ctx
+    before = {k: list(v) for k, v in config['filters'].items() if isinstance(v, list)}
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command(cmd, config, 'tok', '123', MagicMock())
+    assert send.call_args[0][2].startswith(f'Usage: {cmd} ')
+    save.assert_not_called()
+    assert {k: v for k, v in config['filters'].items() if k in before} == before
+
+
+def test_help_sends_the_command_list(ctx):
+    from funda_bot.commands import HELP_TEXT
+    config, send = ctx
+    handle_command('/Help', config, 'tok', '123', MagicMock())   # commands are case-insensitive
+    assert send.call_args[0][2] == HELP_TEXT
+
+
+def test_unknown_command_points_to_help(ctx):
+    config, send = ctx
+    handle_command('/frobnicate now', config, 'tok', '123', MagicMock())
+    assert send.call_args[0][2] == 'Unknown command. Send /help for the full list.'
+
+
+# ---------------------------------------------------------------------------
+# C7 — config.yaml bootstrap (main.load_config)
+# ---------------------------------------------------------------------------
+
+def test_load_config_bootstraps_from_the_template(main_mod, monkeypatch, tmp_path):
+    example = tmp_path / 'config.example.yaml'
+    example.write_text(_OLD_CONFIG)
+    monkeypatch.setattr(main_mod, '_CONFIG_PATH', tmp_path / 'config.yaml')
+    monkeypatch.setattr(main_mod, '_CONFIG_EXAMPLE_PATH', example)
+
+    assert main_mod.load_config() == {'filters': {'areas': ['utrecht/oudwijk']}}
+    assert (tmp_path / 'config.yaml').read_text() == _OLD_CONFIG
+
+
+def test_load_config_keeps_an_existing_config(main_mod, monkeypatch, tmp_path):
+    (tmp_path / 'config.yaml').write_text('filters:\n  areas: []\n')
+    (tmp_path / 'config.example.yaml').write_text(_OLD_CONFIG)
+    monkeypatch.setattr(main_mod, '_CONFIG_PATH', tmp_path / 'config.yaml')
+    monkeypatch.setattr(main_mod, '_CONFIG_EXAMPLE_PATH', tmp_path / 'config.example.yaml')
+    assert main_mod.load_config() == {'filters': {'areas': []}}
+
+
+def test_load_config_without_template_fails_clearly(main_mod, monkeypatch, tmp_path):
+    monkeypatch.setattr(main_mod, '_CONFIG_PATH', tmp_path / 'config.yaml')
+    monkeypatch.setattr(main_mod, '_CONFIG_EXAMPLE_PATH', tmp_path / 'config.example.yaml')
+    with pytest.raises(FileNotFoundError, match='config.example.yaml is missing'):
+        main_mod.load_config()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_real_template_loads_and_has_every_section(main_mod):
+    """config.example.yaml is what a fresh install runs on: it must parse and be complete."""
+    import yaml
+    config = yaml.safe_load(main_mod._CONFIG_EXAMPLE_PATH.read_text())
+    assert {'notifications', 'filters', 'schedule'} <= set(config)
+    assert config['schedule']['hours']
