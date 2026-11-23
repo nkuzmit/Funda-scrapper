@@ -46,6 +46,12 @@ Last updated: 2026-11-23
 - **Deployed (2026-11-20, last at 17:23, `6e93afb`):** Sprint 4, log hygiene. APScheduler
   is quiet, polling network errors log as WARNING, and each command logs how late it
   arrived. 79/79 tests. Details and live confirmation are in the Sprint 4 section below.
+- **On `dev`, not deployed (2026-11-23, `5d3d001`):** when Telegram answers `getUpdates`
+  with an error (`ok: false`, e.g. 401 revoked token, 409 second poller), polling logs
+  ERROR `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before,
+  it re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
+  80/80 tests. After deploy, check: `/filters` answers, the network WARNINGs carry on
+  as before, and no `Telegram replied` ERRORs appear.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
