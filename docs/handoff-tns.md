@@ -1,21 +1,22 @@
 # Handoff — 2026-11-23
 
-Branch: `dev` @ `6be6929`, pushed (in sync with `origin/dev` before this update) ·
-deployed: `main` @ `0ba6c32` (verified on the server 2026-11-23; `dev` is ahead by
-docs only, no deploy needed)
-Last commit: session handoff for 2026-11-23 (`3127413`).
+Branch: `dev` @ `eb1016c` plus this handoff commit, 2 ahead of `origin/dev` before it
+(docs only) · deployed: `main` @ `2cd494b` (verified on the server 2026-11-23; `dev`
+is ahead by docs only, no deploy needed)
+Last commit: WORKING_PLAN records review action 4 (C4) as deployed (`eb1016c`).
 
 ## Pick up here next
-- **Review follow-up 4 (C4)** — next item in
-  [WORKING_PLAN.md](WORKING_PLAN.md), section "Review follow-ups". Same pattern as
-  actions 1–3: the four pre-fix answers (CLAUDE.md), the owner picks the design, tests
-  that fail on the old code, then the owner decides how far to ship. Commands:
-  [CONTRIBUTING.md](../CONTRIBUTING.md). Post-deploy check: the smoke test in
-  [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Confirm C4 live.** It's deployed, but no run with matches has happened since. On
+  the first run where Funda reports matches, check `grep "Skipped" main.log`. The
+  falsifier is written in the [WORKING_PLAN.md](WORKING_PLAN.md) status snapshot
+  (`2cd494b` entry).
+- **Then V1**: the next item in [WORKING_PLAN.md](WORKING_PLAN.md), "Review
+  follow-ups". It's the owner's call (product direction), not a code change.
 
 ## Open question
 - Add the two new ERROR signatures (`Telegram replied`, `Failed to send Telegram
-  message`) to DEPLOYMENT smoke-test step 2? Proposed, not answered — owner.
-- Delete the five merged local branches (`fix/polling-telegram-errors`,
-  `fix/send-checks-reply`, `fix/atomic-config-save`, `fix/schedule-out-of-range`,
-  `fix/empty-channels`)? — owner.
+  message`) to [DEPLOYMENT.md](DEPLOYMENT.md) smoke-test step 2? Proposed, not
+  answered (owner).
+- 26 local branches are merged into `dev` and not deleted, including this session's
+  `fix/log-parse-skips` and `docs/c4-status`. Delete them? That's review C19, under
+  "Hygiene" in WORKING_PLAN (owner).
