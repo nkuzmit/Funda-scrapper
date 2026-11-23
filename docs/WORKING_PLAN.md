@@ -253,8 +253,10 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
     are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
     confirmed because the fix worked; amend plan and memory when a change is reverted;
     don't trust past commits or plan entries without re-checking.
-11. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work (depends
-    on V1).
+11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`), 2026-11-23, not
+    deployed.** Done ahead of V1 because it was small and logging-only. The CallMeBot
+    `apikey` and `phone` are now redacted like the Telegram token. It was latent: the
+    server's channels are `[telegram]` and no key is set.
 12. **Hygiene**: C8–C20, D10–D16 as they come up. C19, partly done 2026-11-23: the 27
     local branches merged into `dev` are deleted. Still open, each the owner's call:
     `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, `/root/funda-config.bak` on
