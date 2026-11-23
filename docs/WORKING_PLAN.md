@@ -227,7 +227,10 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    written down. If multi-user, C5, C7, C3/C12 and C11 move up.
 6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
    duplicate check skips it with no log line, after it has already been counted in
-   `Page N: X listings`. **Next.**
+   `Page N: X listings`. **Done on `dev` (`25acd5e`), not deployed.** It's now a parser
+   skip (`no url`) in the C4 WARNING. If *every* listing lacks a URL while Funda
+   reports matches (a renamed field), the scrape raises `ScrapeError` and alerts.
+   Before, that read as a quiet day.
 7. **C6 — test on Python 3.12**, which production runs. **Done on `dev`, 2026-11-23,
    not deployed** (tests, pins and docs only; nothing changes on the server). The suite
    on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
@@ -235,7 +238,7 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
    choice):** how routine tests run on 3.12. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
-   the `config.yaml` bootstrap.
+   the `config.yaml` bootstrap. **Next.**
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
