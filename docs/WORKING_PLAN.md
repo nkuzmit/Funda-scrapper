@@ -294,8 +294,16 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         neither had commits that `dev` lacked. Deleted `/root/funda-config.bak` on the
         server, the backup from the 2026-06-25 config migration; the live `config.yaml`
         is a superset of it. The bot stayed `active`.
+      - C20. It was worse than the review said. pytest collected the untracked root
+        `test_run.py` on every run (there was no pytest config), and importing it ran a
+        live Funda scrape. It could also send up to 2 listings to the owner's real chat:
+        the local `.env` holds the production bot and chat, and the script never marked
+        anything as seen. This happened on every pytest run since 2026-03. Proved with
+        the network blocked: collection failed with `ScrapeError`. The owner saw no
+        repeated messages without a reason behind them. The fix: the script is deleted
+        (local only), `pytest.ini` limits collection to `tests/`, and its `.gitignore`
+        line is gone. With the guard, the suite passes with the network blocked.
     - **Still open, the owner's call:**
-      - C20: the local `test_run.py` makes a real Funda request.
       - D15: the ethos file's bot-challenge line ("no intervention needed") predates
         the alert.
     - **Still open, need a design choice:**
