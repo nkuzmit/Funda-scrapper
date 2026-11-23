@@ -87,7 +87,9 @@ Treat each of these as a data-collection request, not a fix request:
 
 - **Don't merge or deploy the `setup-wizard` branch as-is** — it carries a wiped
   `config.yaml`, predates the H1 no-areas fix, and needs reconciliation with H2's
-  bootstrap logic. See [docs/WORKING_PLAN.md](docs/WORKING_PLAN.md).
+  bootstrap logic. See [docs/WORKING_PLAN.md](docs/WORKING_PLAN.md). **Never push it
+  either**: its `PLAN.md` (commit `d9d0ba3`) holds the server IP and SSH key path, which
+  are in no pushed history today. Drop that file before the branch is rebased or pushed.
 - **Don't hammer funda.nl while testing** — repeated rapid requests trigger the
   bot-challenge page and rate-limit the VPS IP.
 - Don't use system Python; don't commit `.env`, `config.yaml`, `seen_listings.db`,
