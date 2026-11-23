@@ -74,15 +74,23 @@ HELP_TEXT = (
 # ---------------------------------------------------------------------------
 
 def _send(bot_token: str, chat_id: str, text: str):
-    """Send a plain-text message to the configured chat."""
+    """Send a plain-text message to the configured chat. Failures are logged.
+
+    Telegram rejects a message with a 4xx/5xx and explains why only in the
+    body; requests doesn't raise on those by itself, so check explicitly
+    (review C2: a rejected reply or alert used to leave no trace).
+    """
     try:
-        requests.post(
+        r = requests.post(
             f"https://api.telegram.org/bot{bot_token}/sendMessage",
             data={'chat_id': chat_id, 'text': text},
             timeout=10,
         )
+        r.raise_for_status()
     except Exception as e:
-        logger.error(f"Failed to send Telegram message: {_redact(e)}")
+        body = getattr(getattr(e, 'response', None), 'text', '') or ''
+        detail = f"{e} | response: {body[:300]}" if body else str(e)
+        logger.error(f"Failed to send Telegram message: {_redact(detail)}")
 
 
 def _save_config(config: dict):
