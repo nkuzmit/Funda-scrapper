@@ -6,8 +6,9 @@ The routine deploy command and dev workflow are in [CONTRIBUTING.md](../CONTRIBU
 ## First-time install
 
 ```bash
+cd /home                                   # funda-bot.service expects /home/Funda-scrapper
 git clone https://github.com/nkuzmit/Funda-scrapper.git
-cd Funda-Scrapper
+cd Funda-scrapper                          # lowercase s, as cloned
 python3 -m venv venv
 venv/bin/pip install -r requirements.txt
 cp .env.example .env                       # fill in TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, ...
