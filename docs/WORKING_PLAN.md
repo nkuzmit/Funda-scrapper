@@ -161,9 +161,9 @@ about 40% of the volume:
 | Everything else | 5% |
 
 ### L4 — Quiet APScheduler · DEPLOYED · 2026-11-20 16:45 (`77ac550`)
-The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 a missed
-run and a skipped overlapping run log at WARNING, and a job that raised logs at ERROR,
-so they still get through. The startup "Added job" lines are replaced by one line from
+The `apscheduler` logger is set to WARNING in `main.py`. In APScheduler 3.10.4 and 3.11.2
+(production; both checked 2026-11-23) a missed run and a skipped overlapping run log at
+WARNING, and a job that raised logs at ERROR, so they still get through. The startup "Added job" lines are replaced by one line from
 `funda_bot.scheduler`: `Scheduler started: N runs a day (Europe/Amsterdam) at …`.
 Expect about 29% less volume. 74/74 tests. **Confirmed live** 2026-11-20: at startup
 (16:45) the line read `Scheduler started: 14 runs a day … at 07:00 … 20:00`, matching
@@ -228,8 +228,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
 6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
    duplicate check skips it with no log line, after it has already been counted in
    `Page N: X listings`. **Next.**
-7. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
-   Known-risks line below and README's "3.10+".
+7. **C6 — test on Python 3.12**, which production runs. **Done on `dev`, 2026-11-23,
+   not deployed** (tests, pins and docs only; nothing changes on the server). The suite
+   on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
+   predated the M5 pins: APScheduler 3.11.2 and PyYAML 6.0.3 since 2026-03-19, never the
+   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
+   choice):** how routine tests run on 3.12. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
    the `config.yaml` bootstrap.
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
@@ -319,4 +323,7 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
     crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
     which is a second moving part.
-- **Python 3.14.3** is bleeding-edge; deps are now pinned (M5).
+- **The test gate runs on a different Python than production.** Production runs 3.12.3
+  and the local `venv` runs 3.14.3. A one-off check (2026-11-23) passed on 3.10.11,
+  3.12.3 (with the server's exact packages) and 3.14.3. It found one test that only
+  worked on 3.13+. Routine `pytest` still runs on 3.14 only.
