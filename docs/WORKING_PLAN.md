@@ -238,9 +238,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
    choice):** how routine tests run on 3.12. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
-   the `config.yaml` bootstrap. **Next.**
+   the `config.yaml` bootstrap. **Done on `dev`, 2026-11-23** (`58ec7b2`, tests only):
+   21 tests, 114 in total. Each was checked against a deliberate break in the code it
+   covers.
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
+   **Next.**
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
     the server IP.
