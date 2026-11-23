@@ -303,9 +303,9 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         repeated messages without a reason behind them. The fix: the script is deleted
         (local only), `pytest.ini` limits collection to `tests/`, and its `.gitignore`
         line is gone. With the guard, the suite passes with the network blocked.
-    - **Still open, the owner's call:**
-      - D15: the ethos file's bot-challenge line ("no intervention needed") predates
-        the alert.
+      - D15. The ethos file's bot-challenge line ("no intervention needed", from
+        2026-03) is deleted. It predated the scrape-failure alert, and README's feature
+        list owns that behaviour.
     - **Still open, need a design choice:**
       - C8 / D13: duplicated helpers and facts.
       - C9 / D12: lock coverage.
