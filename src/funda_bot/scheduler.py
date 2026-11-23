@@ -24,10 +24,12 @@ def schedule_scrapes(hours: list, callback):
             else:
                 h = int(entry)
                 m = 0
+            # Inside the try: '25:00' parses but APScheduler raises ValueError
+            # here, which used to crash startup (review C12).
+            scheduler.add_job(callback, 'cron', hour=h, minute=m)
         except (ValueError, IndexError):
             logger.warning(f"Skipping invalid schedule entry: {entry!r}")
             continue
-        scheduler.add_job(callback, 'cron', hour=h, minute=m)
         times.append(f'{h:02d}:{m:02d}')
     try:
         scheduler.start()
