@@ -52,6 +52,12 @@ Last updated: 2026-11-23
   it re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
   80/80 tests. After deploy, check: `/filters` answers, the network WARNINGs carry on
   as before, and no `Telegram replied` ERRORs appear.
+- **On `dev`, not deployed (2026-11-23, `9ead3f2`):** command replies, the no-areas
+  prompt and the scrape-failure alert log ERROR `Failed to send Telegram message: … |
+  response: …` (token redacted) when Telegram rejects the message. Before, a rejected
+  message left no trace (live fake-token call: 401, nothing logged). No retry, by owner's
+  choice. 82/82 tests. After deploy, check: `/filters` answers and no `Failed to send
+  Telegram message` ERRORs appear.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
