@@ -243,7 +243,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    covers.
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
-   **Next.**
+   **Done on `dev`, 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
+   now runs `pip install`; the first deploy with it is the next one.
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
     the server IP.
