@@ -270,11 +270,14 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
     the server IP. **D9 done 2026-11-23:** CLAUDE.md's warning now says never to push
-    `setup-wizard`, and why. **D8 is the owner's call** (which rules bind; retiring a
-    memory folder on the owner's machine). The rules that exist only in assistant memory
-    are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
-    confirmed because the fix worked; amend plan and memory when a change is reverted;
-    don't trust past commits or plan entries without re-checking.
+    `setup-wizard`, and why. **D8 done 2026-11-23, owner's decision:** keep every rule,
+    because each was added after something broke. The rules that lived only in
+    assistant memory are now in CLAUDE.md "Change discipline", which is their one home.
+    They went to CLAUDE.md, not CONTRIBUTING, because the four questions and the
+    anti-pattern triggers already live there.
+    That section holds the "stop and answer when the owner pushes back" rule, and the
+    four questions gained the memory's detail. The old OneDrive-path memory folder was
+    deleted: nothing in it was unique or still true.
 11. **C5 — redact WhatsApp credentials from logs.** **Done, deployed** (`eff2cc6`,
     in `7aa804c`). Done ahead of V1 because it was small and logging-only.
     The CallMeBot `apikey` and `phone` are now redacted like the Telegram token. It was
