@@ -1,13 +1,11 @@
 # Handoff — 2026-11-23
 
-Branch: `dev` @ `21b543a`, ahead of `origin/dev` (docs only, not pushed) ·
-deployed: `main` @ `0ba6c32`
-Last commit: added the review follow-ups to the WORKING_PLAN backlog (`c1470b2`).
+Branch: `dev` @ `6be6929`, pushed (in sync with `origin/dev` before this update) ·
+deployed: `main` @ `0ba6c32` (verified on the server 2026-11-23; `dev` is ahead by
+docs only, no deploy needed)
+Last commit: session handoff for 2026-11-23 (`3127413`).
 
 ## Pick up here next
-- **Push `dev`.** Its unpushed commits are docs only (deployed-status entry, review
-  backlog, this handoff); the owner hadn't approved the push when the session ended.
-  No deploy needed.
 - **Review follow-up 4 (C4)** — next item in
   [WORKING_PLAN.md](WORKING_PLAN.md), section "Review follow-ups". Same pattern as
   actions 1–3: the four pre-fix answers (CLAUDE.md), the owner picks the design, tests
