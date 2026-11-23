@@ -293,7 +293,8 @@ class WhatsAppNotifier:
 
 def build_notifiers(config: dict) -> list[Notifier]:
     """Instantiate all active notifiers from config + environment variables."""
-    channels = config.get('notifications', {}).get('channels', [])
+    # An empty YAML key loads as None; treat it as "no channels" (review C13).
+    channels = (config.get('notifications') or {}).get('channels') or []
     notifiers: list[Notifier] = []
 
     if 'telegram' in channels:

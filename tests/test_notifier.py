@@ -253,6 +253,16 @@ def test_build_notifiers_missing_env_skips_channel(monkeypatch):
     assert len(notifiers) == 0
 
 
+@pytest.mark.parametrize('config', [
+    {'notifications': {'channels': None}},   # "channels:" left empty in YAML
+    {'notifications': None},                 # "notifications:" left empty
+    {},
+])
+def test_build_notifiers_empty_channels_means_none(config):
+    """An empty key means no channels, not a TypeError at startup (C13)."""
+    assert build_notifiers(config) == []
+
+
 def test_build_notifiers_multiple_channels(monkeypatch):
     monkeypatch.setenv('TELEGRAM_BOT_TOKEN', 'tok')
     monkeypatch.setenv('TELEGRAM_CHAT_ID', 'cid')
