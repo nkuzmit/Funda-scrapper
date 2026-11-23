@@ -41,8 +41,9 @@ systemctl restart funda-bot
    `Scrape failed:` or `Error in scrape_and_notify` lines (the reason follows, e.g.
    `bot-challenge`, `Nuxt payload not found`, `Parsed 0 listings but Funda reports M
    matches` — the last one is a payload-shape change like the 2026-11-05 ShallowRef
-   outage). On the `Page 1: N listings (total available: M)` line, **N should equal M**
-   whenever M ≤ 15; a partial parse is not flagged as a failure.
+   outage). Also **no** `Skipped K of L listings while parsing: <reasons>` WARNING: the
+   parser dropped listings. That's a partial parse, logged but not treated as a failure,
+   so it never alerts.
 3. In Telegram, send `/run`. Within ~30s expect either listings or
    `All caught up — no new listings found.` Other replies:
    - `⚠️ N new listing(s) could not be sent` — delivery failed, check `main.log`.

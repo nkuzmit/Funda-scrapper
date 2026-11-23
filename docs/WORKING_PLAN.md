@@ -46,18 +46,25 @@ Last updated: 2026-11-23
 - **Deployed (2026-11-20, last at 17:23, `6e93afb`):** Sprint 4, log hygiene. APScheduler
   is quiet, polling network errors log as WARNING, and each command logs how late it
   arrived. 79/79 tests. Details and live confirmation are in the Sprint 4 section below.
-- **On `dev`, not deployed (2026-11-23, `5d3d001`):** when Telegram answers `getUpdates`
-  with an error (`ok: false`, e.g. 401 revoked token, 409 second poller), polling logs
-  ERROR `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before,
-  it re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
-  80/80 tests. After deploy, check: `/filters` answers, the network WARNINGs carry on
-  as before, and no `Telegram replied` ERRORs appear.
-- **On `dev`, not deployed (2026-11-23, `9ead3f2`):** command replies, the no-areas
-  prompt and the scrape-failure alert log ERROR `Failed to send Telegram message: … |
-  response: …` (token redacted) when Telegram rejects the message. Before, a rejected
-  message left no trace (live fake-token call: 401, nothing logged). No retry, by owner's
-  choice. 82/82 tests. After deploy, check: `/filters` answers and no `Failed to send
-  Telegram message` ERRORs appear.
+- **Deployed (2026-11-23 13:54, `0ba6c32`):** review actions 1–3. 88/88 tests.
+  - *Polling error replies* (`5d3d001`): when Telegram answers `getUpdates` with
+    `ok: false` (e.g. 401 revoked token, 409 second poller), polling logs ERROR
+    `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before, it
+    re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
+  - *Send check* (`9ead3f2`): command replies, the no-areas prompt and the scrape-failure
+    alert log ERROR `Failed to send Telegram message: … | response: …` (token redacted)
+    when Telegram rejects the message. Before, nothing was logged (live fake-token call:
+    401, no log line). No retry, by owner's choice.
+  - *Config robustness*: `config.yaml` is saved via a temp file + `fsync` + rename, so a
+    failed write keeps the old file (`dba6583`; a leftover `config.yaml.tmp` is left
+    visible on purpose: it means a save failed). A schedule time like `'25:00'` is skipped
+    with a WARNING instead of crashing startup (`da4e1ee`). An empty `channels:` or
+    `notifications:` means no channels instead of a `TypeError` (`15ea741`).
+  - **Confirmed live** 2026-11-23: startup scrape `0 listings (total available: 0)`,
+    `Scheduler started: 14 runs a day`, polling started. Owner sent `/filters` and
+    `/setdate 3` (same value): both answered, both logged as received 1 s after sending.
+    `config.yaml` was rewritten at the moment of `/setdate` (13:55:19) with an identical
+    checksum and no `.tmp` left behind. 0 ERROR lines since the restart.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -193,6 +200,32 @@ with `bot<redacted>`, the same form the code uses. The lines were kept, not dele
 L5's counts still hold. Afterwards: 0 token matches in `main.log` and `main.log.1`, and
 both line counts unchanged. Not done (owner's choice): a `getMe` check that the old token
 is revoked.
+
+---
+
+## Review follow-ups · IN PROGRESS · 2026-11-23
+
+From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
+to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
+finding numbers). Worked one action at a time, each approved by the owner.
+
+1–3. **Done, deployed** — polling error replies (C1), send check (C2), config robustness
+   (C3, C12, C13). See the status snapshot (`0ba6c32`).
+4. **C4 — log listings the parser skips** (`scraper.py` parse loop: silent `continue`s
+   and a DEBUG line) as one WARNING per page. Visibility only. **Next.**
+5. **V1 — record the product direction** (owner's call): CLAUDE.md says single-user,
+   Future Vision below says multi-user, and the 2026-08 "pivot" isn't written down.
+6. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
+   Known-risks line below and README's "3.10+".
+7. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
+   the `config.yaml` bootstrap.
+8. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
+   `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
+9. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
+   retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
+   the server IP.
+10. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work.
+11. **Hygiene**: C8–C20, D10–D16 as they come up.
 
 ---
 

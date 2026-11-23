@@ -38,6 +38,7 @@ import logging
 import re
 import sqlite3
 import time
+from collections import Counter
 from pathlib import Path
 
 import requests
@@ -231,15 +232,18 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
         )
 
     results: list[dict] = []
+    skipped: Counter[str] = Counter()
     for li in listing_indices:
         try:
             obj = arr[li] if isinstance(li, int) else li
             if not isinstance(obj, dict) or 'id' not in obj:
+                skipped['no id'] += 1
                 continue
 
             # address
             addr = r(obj.get('address'))
             if not isinstance(addr, dict):
+                skipped['address not a dict'] += 1
                 continue
             street   = str(r(addr.get('street_name')) or '')
             number   = str(r(addr.get('house_number')) or '')
@@ -288,8 +292,17 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
                 'photos':           photos,
             })
         except Exception as e:
-            logger.debug(f'Skipping listing due to parse error: {e}')
+            skipped[f'{type(e).__name__}: {e}'] += 1
             continue
+
+    # One line per page, so a dropped listing is visible at the INFO log level.
+    # A partial parse is still not a failure (see the ScrapeError check below).
+    if skipped:
+        reasons = ', '.join(f'{reason} ({n})' for reason, n in skipped.items())
+        logger.warning(
+            f'Skipped {sum(skipped.values())} of {len(listing_indices)} listings '
+            f'while parsing: {reasons}'
+        )
 
     # Funda counted matches but none survived parsing: a payload-shape change,
     # not a quiet market. (The 2026-11-05 ShallowRef outage looked exactly
@@ -312,8 +325,9 @@ def scrape_funda(filters: dict, n_pages: int = 1) -> list[dict]:
 
     Scrapes up to *n_pages* pages (default 1).  Returns a list of normalised
     listing dicts — empty on a quiet day.  Individual unparseable listings are
-    skipped; a page that can't be fetched or read raises ScrapeError (nothing
-    is marked seen, so the next run simply tries again).
+    skipped, with one WARNING per page giving the reasons; a page that can't
+    be fetched or read raises ScrapeError (nothing is marked seen, so the next
+    run simply tries again).
     """
     all_listings: list[dict] = []
 
