@@ -232,6 +232,29 @@ def test_whatsapp_notify_success(monkeypatch):
     assert 'Teststraat 1' in calls[0]['text']
 
 
+@pytest.mark.parametrize('status', [400, 502])   # rejected once / retried, then given up
+def test_whatsapp_failure_log_redacts_credentials(monkeypatch, caplog, status):
+    """CallMeBot takes the API key and phone as GET params, so requests puts
+    them in its error text (review C5). Neither may reach the log."""
+    import requests
+
+    def fake_get(url, params=None, timeout=None):
+        full = requests.Request('GET', url, params=params).prepare().url
+        resp = requests.Response()
+        resp.status_code = status
+        raise requests.HTTPError(f'{status} Client Error: Bad Request for url: {full}', response=resp)
+
+    monkeypatch.setattr('funda_bot.notifier.requests.get', fake_get)
+    monkeypatch.setattr('funda_bot.notifier._RETRY_DELAY', 0)
+    with caplog.at_level('WARNING', logger='funda_bot.notifier'):
+        assert WhatsAppNotifier('+31612345678', 'SECRETkey123').notify(LISTING) is False
+
+    assert caplog.records
+    assert 'SECRETkey123' not in caplog.text
+    assert '31612345678' not in caplog.text
+    assert 'apikey=<redacted>' in caplog.text and 'phone=<redacted>' in caplog.text
+
+
 # ---------------------------------------------------------------------------
 # build_notifiers factory
 # ---------------------------------------------------------------------------

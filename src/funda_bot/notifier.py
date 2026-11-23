@@ -38,14 +38,17 @@ _MAX_PHOTO_SKIPS = 3
 # e.g. 'failed to send message #3 with the error message "WEBPAGE_CURL_FAILED"'.
 _REJECTED_PHOTO_RE = re.compile(r'failed to send message #(\d+)')
 
-# Telegram bot tokens are embedded in api.telegram.org URLs and leak through
-# requests' exception messages. Scrub them before logging.
+# Credentials travel in request URLs and leak through requests' exception
+# messages: the Telegram bot token in the path, CallMeBot's API key and phone
+# number as query params (review C5). Scrub them before logging.
 _TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
+_QUERY_SECRET_RE = re.compile(r'(?<=[?&])(apikey|phone)=[^&\s\'"]+')
 
 
 def _redact(text) -> str:
-    """Remove Telegram bot tokens from a string before logging."""
-    return _TOKEN_RE.sub('bot<redacted>', str(text))
+    """Remove the Telegram bot token and CallMeBot credentials from a string before logging."""
+    text = _TOKEN_RE.sub('bot<redacted>', str(text))
+    return _QUERY_SECRET_RE.sub(r'\1=<redacted>', text)
 
 
 def _error_detail(e: Exception) -> str:
