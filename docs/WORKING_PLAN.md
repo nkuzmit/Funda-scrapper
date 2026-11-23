@@ -46,18 +46,25 @@ Last updated: 2026-11-23
 - **Deployed (2026-11-20, last at 17:23, `6e93afb`):** Sprint 4, log hygiene. APScheduler
   is quiet, polling network errors log as WARNING, and each command logs how late it
   arrived. 79/79 tests. Details and live confirmation are in the Sprint 4 section below.
-- **On `dev`, not deployed (2026-11-23, `5d3d001`):** when Telegram answers `getUpdates`
-  with an error (`ok: false`, e.g. 401 revoked token, 409 second poller), polling logs
-  ERROR `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before,
-  it re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
-  80/80 tests. After deploy, check: `/filters` answers, the network WARNINGs carry on
-  as before, and no `Telegram replied` ERRORs appear.
-- **On `dev`, not deployed (2026-11-23, `9ead3f2`):** command replies, the no-areas
-  prompt and the scrape-failure alert log ERROR `Failed to send Telegram message: … |
-  response: …` (token redacted) when Telegram rejects the message. Before, a rejected
-  message left no trace (live fake-token call: 401, nothing logged). No retry, by owner's
-  choice. 82/82 tests. After deploy, check: `/filters` answers and no `Failed to send
-  Telegram message` ERRORs appear.
+- **Deployed (2026-11-23 13:54, `0ba6c32`):** review actions 1–3. 88/88 tests.
+  - *Polling error replies* (`5d3d001`): when Telegram answers `getUpdates` with
+    `ok: false` (e.g. 401 revoked token, 409 second poller), polling logs ERROR
+    `Polling error: Telegram replied <code>: <description>` and pauses 30 s. Before, it
+    re-polled instantly with no log line (offline simulation: 1,000 polls in 2 ms).
+  - *Send check* (`9ead3f2`): command replies, the no-areas prompt and the scrape-failure
+    alert log ERROR `Failed to send Telegram message: … | response: …` (token redacted)
+    when Telegram rejects the message. Before, nothing was logged (live fake-token call:
+    401, no log line). No retry, by owner's choice.
+  - *Config robustness*: `config.yaml` is saved via a temp file + `fsync` + rename, so a
+    failed write keeps the old file (`dba6583`; a leftover `config.yaml.tmp` is left
+    visible on purpose: it means a save failed). A schedule time like `'25:00'` is skipped
+    with a WARNING instead of crashing startup (`da4e1ee`). An empty `channels:` or
+    `notifications:` means no channels instead of a `TypeError` (`15ea741`).
+  - **Confirmed live** 2026-11-23: startup scrape `0 listings (total available: 0)`,
+    `Scheduler started: 14 runs a day`, polling started. Owner sent `/filters` and
+    `/setdate 3` (same value): both answered, both logged as received 1 s after sending.
+    `config.yaml` was rewritten at the moment of `/setdate` (13:55:19) with an identical
+    checksum and no `.tmp` left behind. 0 ERROR lines since the restart.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
