@@ -369,7 +369,7 @@ def _poll(monkeypatch, *polls):
 
     def response(updates):
         r = MagicMock()
-        r.json.return_value = {'result': updates}
+        r.json.return_value = {'ok': True, 'result': updates}   # Telegram always sends ok
         return r
 
     calls = iter([response([])] + [p if isinstance(p, BaseException) else response(p) for p in polls])
@@ -433,6 +433,24 @@ def test_polling_network_blip_is_a_warning(monkeypatch, caplog, error):
     record = caplog.records[-1]
     assert record.levelname == 'WARNING'
     assert 'Polling error (network, retrying)' in record.getMessage()
+
+
+def test_polling_telegram_error_reply_is_logged_and_paused(monkeypatch, caplog):
+    """An error reply (e.g. a revoked token) must not read as an empty inbox (C1)."""
+    from funda_bot import commands
+    reply = MagicMock()
+    reply.json.return_value = {'ok': False, 'error_code': 401, 'description': 'Unauthorized'}
+    monkeypatch.setattr(commands.requests, 'get', lambda *args, **kwargs: reply)
+    paused = []
+
+    def stop(seconds):
+        paused.append(seconds)
+        raise _StopPolling
+    monkeypatch.setattr(commands.time, 'sleep', stop)
+    with caplog.at_level('ERROR', logger='funda_bot.commands'), pytest.raises(_StopPolling):
+        commands.poll_commands('123:abc', '1', {'filters': {}}, MagicMock())
+    assert caplog.records[-1].getMessage() == 'Polling error: Telegram replied 401: Unauthorized'
+    assert paused == [30]
 
 
 def test_polling_other_error_stays_an_error(monkeypatch, caplog):

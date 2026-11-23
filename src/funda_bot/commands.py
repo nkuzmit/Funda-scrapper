@@ -42,6 +42,11 @@ def _redact(text) -> str:
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
 _CONFIG_LOCK = threading.Lock()
 
+# Pause after Telegram answers getUpdates with an error (ok: false). A revoked
+# token (401) or a second poller (409) repeats until someone acts; 30 s keeps
+# that to ~120 log lines an hour.
+_TELEGRAM_ERROR_PAUSE = 30
+
 _LABEL_ORDER = ['A+++++', 'A++++', 'A+++', 'A++', 'A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
 
 
@@ -321,7 +326,8 @@ def poll_commands(bot_token: str, chat_id: str, config: dict, scrape_fn):
     """Block the main thread, polling Telegram for incoming commands.
 
     Dispatches any command from the authorised chat_id to handle_command().
-    Ignores all other senders. Retries automatically on network errors.
+    Ignores all other senders. Retries automatically on network errors and on
+    error replies from Telegram, logging each one.
     """
     url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
     logger.info("Telegram command polling started")
@@ -338,7 +344,17 @@ def poll_commands(bot_token: str, chat_id: str, config: dict, scrape_fn):
     while True:
         try:
             r = requests.get(url, params={'offset': offset, 'timeout': 30}, timeout=35)
-            for update in r.json().get('result', []):
+            data = r.json()
+            if not data.get('ok'):
+                # An error reply must not read as an empty inbox: without this
+                # the loop re-polled instantly and silently (review C1).
+                logger.error(
+                    f"Polling error: Telegram replied {data.get('error_code')}: "
+                    f"{data.get('description')}"
+                )
+                time.sleep(_TELEGRAM_ERROR_PAUSE)
+                continue
+            for update in data.get('result', []):
                 offset = update['update_id'] + 1
                 msg = update.get('message', {})
                 if str(msg.get('chat', {}).get('id')) != str(chat_id):
