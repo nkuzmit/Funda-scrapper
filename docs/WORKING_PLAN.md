@@ -74,6 +74,23 @@ Last updated: 2026-11-23
   and the WARNING is noise (the falsifier).
   Server logs 2026-03-19 → 2026-11-23 (3,562 page lines): N < M only on the 172 ShallowRef
   outage runs (N = 0). A partial parse never happened.
+- **Deployed (2026-11-23 14:46, `7aa804c`):** review follow-ups 6, 7, 11 and hygiene
+  batch 1. In production terms:
+  - A listing without a URL is a parser skip, and a renamed URL field fails the scrape
+    instead of reading as a quiet day.
+  - WhatsApp credentials are redacted from logs.
+  - The bot-challenge check is one clause instead of two (same pages match).
+  - The pins equal the server's packages.
+
+  116/116 tests on 3.14.3, and on 3.12.3 with the server's packages. This was the first
+  deploy with `pip install` in the command: a `pip freeze` diff before and after was
+  empty. **Confirmed live** 2026-11-23:
+  - The startup scrape and an owner `/run` (14:47) both returned `0 listings (total
+    available: 0)`. `/run` was received 0 s after sending and answered `All caught up`.
+  - 0 WARNING/ERROR lines in `main.log`, and 0 errors in the systemd journal.
+
+  **Not yet confirmed live:** a run with matches. The C4 falsifier above applies to the
+  new `no url` reason too.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -227,24 +244,25 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    written down. If multi-user, C5, C7, C3/C12 and C11 move up.
 6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
    duplicate check skips it with no log line, after it has already been counted in
-   `Page N: X listings`. **Done on `dev` (`25acd5e`), not deployed.** It's now a parser
+   `Page N: X listings`. **Done, deployed** (`25acd5e`, in `7aa804c`). It's now a parser
    skip (`no url`) in the C4 WARNING. If *every* listing lacks a URL while Funda
    reports matches (a renamed field), the scrape raises `ScrapeError` and alerts.
    Before, that read as a quiet day.
-7. **C6 — test on Python 3.12**, which production runs. **Done on `dev`, 2026-11-23,
-   not deployed** (tests, pins and docs only; nothing changes on the server). The suite
+7. **C6 — test on Python 3.12**, which production runs. **Done, deployed** in `7aa804c`
+   (tests, pins and docs only; the server's packages didn't change). The suite
    on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
    predated the M5 pins: APScheduler 3.11.2 and PyYAML 6.0.3 since 2026-03-19, never the
    pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
    choice):** how routine tests run on 3.12. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
-   the `config.yaml` bootstrap. **Done on `dev`, 2026-11-23** (`58ec7b2`, tests only):
+   the `config.yaml` bootstrap. **Done 2026-11-23** (`58ec7b2`, tests only, in `main`):
    21 tests, 114 in total. Each was checked against a deliberate break in the code it
    covers.
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
-   **Done on `dev`, 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
-   now runs `pip install`; the first deploy with it is the next one.
+   **Done 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
+   now runs `pip install`. It was first used for `7aa804c` and changed nothing, as
+   expected.
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
     the server IP. **D9 done 2026-11-23:** CLAUDE.md's warning now says never to push
@@ -253,12 +271,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
     are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
     confirmed because the fix worked; amend plan and memory when a change is reverted;
     don't trust past commits or plan entries without re-checking.
-11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`),
-    2026-11-23, not deployed.** Done ahead of V1 because it was small and logging-only.
+11. **C5 — redact WhatsApp credentials from logs.** **Done, deployed** (`eff2cc6`,
+    in `7aa804c`). Done ahead of V1 because it was small and logging-only.
     The CallMeBot `apikey` and `phone` are now redacted like the Telegram token. It was
     latent: the server's channels are `[telegram]` and no key is set.
 12. **Hygiene**: C8–C20, D10–D16 as they come up.
-    - **Done on `dev`, 2026-11-23:**
+    - **Done 2026-11-23, deployed in `7aa804c`:**
       - D10, D11: docstrings (`b83a091`).
       - C15: one bot-challenge check instead of two (`24312e2`; no behaviour change).
       - C18: pytest pinned (`dfabf68`).
