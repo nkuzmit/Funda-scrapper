@@ -289,9 +289,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C18: pytest pinned (`dfabf68`).
       - D16: README (`e2d1aea`).
       - C19, local part: the 27 local branches merged into `dev` are deleted.
+    - **Done 2026-11-23, the owner's call:**
+      - C19 leftovers. Deleted `origin/fix/h2-apply` and `origin/fix/m3-thread-safety`;
+        neither had commits that `dev` lacked. Deleted `/root/funda-config.bak` on the
+        server, the backup from the 2026-06-25 config migration; the live `config.yaml`
+        is a superset of it. The bot stayed `active`.
     - **Still open, the owner's call:**
-      - C19 leftovers: `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, and
-        `/root/funda-config.bak` on the server.
       - C20: the local `test_run.py` makes a real Funda request.
       - D15: the ethos file's bot-challenge line ("no intervention needed") predates
         the alert.
