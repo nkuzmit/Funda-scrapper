@@ -247,7 +247,12 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    now runs `pip install`; the first deploy with it is the next one.
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
-    the server IP.
+    the server IP. **D9 done 2026-11-23:** CLAUDE.md's warning now says never to push
+    `setup-wizard`, and why. **D8 is the owner's call** (which rules bind; retiring a
+    memory folder on the owner's machine). The rules that exist only in assistant memory
+    are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
+    confirmed because the fix worked; amend plan and memory when a change is reverted;
+    don't trust past commits or plan entries without re-checking.
 11. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work (depends
     on V1).
 12. **Hygiene**: C8–C20, D10–D16 as they come up. C19, partly done 2026-11-23: the 27
