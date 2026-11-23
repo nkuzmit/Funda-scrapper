@@ -239,9 +239,9 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
 4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
    (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
-5. **V1 — record the product direction** (owner's call, no code): CLAUDE.md says
-   single-user, Future Vision below says multi-user, and the 2026-08 "pivot" isn't
-   written down. If multi-user, C5, C7, C3/C12 and C11 move up.
+5. **V1 — record the product direction.** **Decided 2026-11-23:** single-user for now.
+   Multi-user, multi-channel and the setup wizard are parked, to revisit once the
+   running topics are cleared. Recorded in Future Vision below.
 6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
    duplicate check skips it with no log line, after it has already been counted in
    `Page N: X listings`. **Done, deployed** (`25acd5e`, in `7aa804c`). It's now a parser
@@ -307,18 +307,29 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
 ## Sprint 3 — Setup wizard · PARKED
 
 The Phase-4 guided 6-step Telegram setup wizard lives on the unmerged
-`setup-wizard` branch. **Decision: park it.** It works as the seed for a bigger
-future feature — see Future Vision below.
+`setup-wizard` branch. **Decision: park it** (re-confirmed 2026-11-23). It's the seed
+for multi-user (see Future Vision below). For the single-user bot it would be a
+nice-to-have.
 
 **Do not merge or deploy** `setup-wizard` as-is: it carries a wiped `config.yaml`,
 predates the H1 no-areas fix, and needs reconciliation with H2's bootstrap logic.
 
 ---
 
-## Future Vision — Multi-user / multi-channel
+## Future Vision — Multi-user / multi-channel · PARKED · 2026-11-23
+
+**Product direction (owner, 2026-11-23): single-user, for now.** This section is the one
+home for that decision. Revisit it once the running topics (Review follow-ups, Open
+issues) are cleared.
+
+History:
+- Up to 2026-06-25, `PLAN.md` called multi-user out of scope.
+- On 2026-06-25 this section made it the goal.
+- The 2026-08 "pivot" (commit `389a865`) was an attempt at exactly this: multi-user
+  plus multi-channel. It's parked with the rest.
 
 The setup wizard is the entry point for making this bot usable by independent
-users without manual config editing. When that work resumes, the scope is:
+users without manual config editing. If this work resumes, the scope is:
 
 - **Setup wizard**: rebase `setup-wizard` on main, fix the H1/H2 regressions,
   expose it as `/start` so a new user can configure the bot conversationally.
@@ -326,7 +337,9 @@ users without manual config editing. When that work resumes, the scope is:
   (CallMeBot plumbing already exists, just needs wiring into wizard onboarding).
 - **Multi-user**: each chat_id gets its own filter config (config keyed by chat_id).
 
-This is a meaningful scope expansion — treat it as a new sprint when prioritised.
+This is a meaningful scope expansion, not wiring. Today there is one global
+`config.yaml`, one config lock and one shared seen-table, so multi-user means
+redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
 
 ---
 

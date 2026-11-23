@@ -5,7 +5,8 @@ Guidance for Claude Code working in this repo. Keep it short; link, don't restat
 ## What this is
 
 A personal bot that watches funda.nl for new for-sale listings and pushes matches to
-Telegram (and optionally email / WhatsApp). Python, single-user, deployed on a Linux
+Telegram (and optionally email / WhatsApp). Python, single-user (for now; multi-user
+is parked, see [WORKING_PLAN Future Vision](docs/WORKING_PLAN.md)), deployed on a Linux
 VPS as a systemd service. Design ethos: **AK-47** — simple, robust, no overengineering
 (see `.github/instructions/instruction.instructions.md`, the single home for that text).
 
