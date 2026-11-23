@@ -216,29 +216,33 @@ is revoked.
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
-finding numbers). Worked one action at a time, each approved by the owner.
+finding numbers). Worked one action at a time. Order agreed with the owner 2026-11-23.
 
 1–3. **Done, deployed** — polling error replies (C1), send check (C2), config robustness
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
 4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
-   (`2cd494b`).
-5. **V1 — record the product direction** (owner's call): CLAUDE.md says single-user,
-   Future Vision below says multi-user, and the 2026-08 "pivot" isn't written down.
-   **Next.**
-6. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
+   (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
+5. **V1 — record the product direction** (owner's call, no code): CLAUDE.md says
+   single-user, Future Vision below says multi-user, and the 2026-08 "pivot" isn't
+   written down. If multi-user, C5, C7, C3/C12 and C11 move up.
+6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
+   duplicate check skips it with no log line, after it has already been counted in
+   `Page N: X listings`. **Next.**
+7. **C6 — test on Python 3.12**, which production runs (tests run on 3.14). Fix the
    Known-risks line below and README's "3.10+".
-7. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
+8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
    the `config.yaml` bootstrap.
-8. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
+9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
-9. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
-   retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
-   the server IP.
-10. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work.
-11. **Hygiene**: C8–C20, D10–D16 as they come up.
-12. **A listing without a URL is dropped silently** (found during C4, kept separate by
-    owner's choice). `scrape_funda`'s duplicate check skips it with no log line, after
-    it has already been counted in `Page N: X listings`.
+10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
+    retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
+    the server IP.
+11. **C5 — redact WhatsApp credentials from logs** before any WhatsApp work (depends
+    on V1).
+12. **Hygiene**: C8–C20, D10–D16 as they come up. C19, partly done 2026-11-23: the 27
+    local branches merged into `dev` are deleted. Still open, each the owner's call:
+    `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, `/root/funda-config.bak` on
+    the server.
 
 ---
 
