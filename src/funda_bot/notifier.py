@@ -20,6 +20,7 @@ import smtplib
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from html import escape
 from typing import Protocol
 
 import requests
@@ -142,25 +143,33 @@ def _format_plain(listing: dict) -> str:
 
 
 def _format_html(listing: dict) -> str:
-    """Format listing as an HTML email body."""
+    """Format listing as an HTML email body.
+
+    Every value comes from Funda's payload, so each is escaped: a '&' or '<'
+    in a street name, or a quote in a URL, would otherwise break the markup
+    (review C17). escape() also escapes quotes, so it is safe in attributes.
+    """
+    def esc(value) -> str:
+        return escape(str(value))
+
     photos = (listing.get('photos') or [])[:_PHOTOS_PER_MESSAGE]
     imgs = ''.join(
-        f'<img src="{p}" style="width:48%;margin:1%;border-radius:6px;">'
+        f'<img src="{esc(p)}" style="width:48%;margin:1%;border-radius:6px;">'
         for p in photos
     )
     photo_block = f'<div style="margin-bottom:12px;">{imgs}</div>' if imgs else ''
     return f"""
 <html><body style="font-family:sans-serif;max-width:600px;">
 {photo_block}
-<h2>🏠 {listing.get('title')}</h2>
+<h2>🏠 {esc(listing.get('title'))}</h2>
 <table cellpadding="6">
-  <tr><td><b>Price</b></td><td>{_fmt_price(listing.get('price'))}</td></tr>
-  <tr><td><b>Location</b></td><td>{listing.get('location')}</td></tr>
-  <tr><td><b>Size</b></td><td>{listing.get('size')} m²</td></tr>
-  <tr><td><b>Rooms</b></td><td>{listing.get('bedrooms')} bedrooms / {listing.get('rooms')} total</td></tr>
-  <tr><td><b>Energy label</b></td><td>{listing.get('energy_label') or 'N/A'}</td></tr>
+  <tr><td><b>Price</b></td><td>{esc(_fmt_price(listing.get('price')))}</td></tr>
+  <tr><td><b>Location</b></td><td>{esc(listing.get('location'))}</td></tr>
+  <tr><td><b>Size</b></td><td>{esc(listing.get('size'))} m²</td></tr>
+  <tr><td><b>Rooms</b></td><td>{esc(listing.get('bedrooms'))} bedrooms / {esc(listing.get('rooms'))} total</td></tr>
+  <tr><td><b>Energy label</b></td><td>{esc(listing.get('energy_label') or 'N/A')}</td></tr>
 </table>
-<p><a href="{listing.get('url')}">View on Funda →</a></p>
+<p><a href="{esc(listing.get('url'))}">View on Funda →</a></p>
 </body></html>
 """
 
