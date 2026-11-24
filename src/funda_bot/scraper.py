@@ -14,10 +14,12 @@ How it works
    marker string "fetchListings" — that is the Nuxt state payload.
 4. Parse the payload array.  Values in each object are integer indices back
    into the same array (a shared-reference pool), or wrapped in
-   Ref/Reactive/ShallowReactive/ShallowRef marker tuples.  We resolve them
-   with an unwrap helper.  An unrecognised marker on the listings empties
-   the result (this happened when Funda switched to ShallowRef on
-   2026-11-05) — which now raises ScrapeError when Funda reports matches.
+   Ref/Reactive/ShallowReactive/ShallowRef marker tuples, or EmptyRef/
+   EmptyShallowRef ones that hold a falsy value as JSON text ('0', 'null').
+   We resolve them with an unwrap helper.  An unrecognised marker on the
+   listings empties the result (this happened when Funda switched to
+   ShallowRef on 2026-11-05) — which now raises ScrapeError when Funda
+   reports matches.  One on the total raises too: it isn't a number.
 5. Locate the search state dict (the one that has both "listings" and
    "totalListingsCount" keys) and iterate the listing objects.
 6. Normalise each listing to our internal dict format.
@@ -162,6 +164,24 @@ def _photo_url(path) -> str | None:
     return None
 
 
+def _empty_ref_value(data):
+    """Decode the text an EmptyRef/EmptyShallowRef marker points to.
+
+    Nuxt stores a ref with a falsy value as that value's JSON text: 0 -> '0',
+    null -> 'null', false -> 'false', undefined -> '_', BigInt 0 -> '0n'.
+    This mirrors Nuxt's client reviver (revive-payload.client.ts), including
+    its fallback of keeping text that isn't JSON as it is.
+    """
+    if data == '_':
+        return None
+    if data == '0n':
+        return 0
+    try:
+        return json.loads(data)
+    except (TypeError, json.JSONDecodeError):
+        return data
+
+
 def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
     """Extract normalised listing dicts and total count from a Funda HTML page.
 
@@ -191,14 +211,14 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
         raise ScrapeError(f'Failed to parse Nuxt payload: {e}') from e
 
     def unwrap(x):
-        """Strip Ref/Reactive/ShallowReactive/ShallowRef wrappers."""
-        while (
-            isinstance(x, list)
-            and len(x) == 2
-            and isinstance(x[0], str)
-            and x[0] in ('Ref', 'Reactive', 'ShallowReactive', 'ShallowRef')
-        ):
-            x = arr[x[1]]
+        """Strip Ref/Reactive/ShallowReactive/ShallowRef wrappers; decode EmptyRefs."""
+        while isinstance(x, list) and len(x) == 2 and isinstance(x[0], str):
+            if x[0] in ('Ref', 'Reactive', 'ShallowReactive', 'ShallowRef'):
+                x = arr[x[1]]
+            elif x[0] in ('EmptyRef', 'EmptyShallowRef'):
+                return _empty_ref_value(arr[x[1]])
+            else:
+                break
         return x
 
     def r(x):
@@ -218,11 +238,16 @@ def _parse_nuxt_listings(html: str) -> tuple[list[dict], int]:
         raise ScrapeError('Search state not found in Nuxt payload')
 
     total_count = r(search_state['totalListingsCount'])
-    # On a 0-match page Funda sends ['EmptyRef', i] -> '0' (a string), which
-    # unwrap() doesn't know (verified on a live page, 2026-11-20).  Treating
-    # a non-int as 0 is what keeps quiet days quiet — don't make it an error.
-    if not isinstance(total_count, int):
-        total_count = 0
+    # A quiet day sends ['EmptyRef', i] -> '0', which unwrap() decodes to 0;
+    # a day with matches sends ['Ref', i] -> N (both live pages, 2026-11-24).
+    # Anything else means the payload changed.  Until 2026-11-24 it was read as
+    # 0, so a change that broke both the total and the listings looked like a
+    # quiet day.  (bool is excluded: Python counts True as an int.)
+    if type(total_count) is not int:
+        raise ScrapeError(
+            f'Total listings count is not a number ({total_count!r:.60}) — '
+            'payload shape may have changed'
+        )
 
     # The listings value is a reactive-wrapped list of integer indices
     listing_indices = unwrap(unwrap(arr[search_state['listings']]))

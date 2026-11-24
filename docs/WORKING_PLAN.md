@@ -8,6 +8,12 @@ Last updated: 2026-11-24
 
 ## Status snapshot
 
+One entry per deploy, in date order:
+``**Deployed (<date> <time>, `<hash>`):** <what, in production terms>, see <item>.``
+The live evidence and the test count go in the item, not here. A check still waiting on runtime stays visible here as `**Not yet confirmed
+live:** <what>` (its falsifier is in the item). A deploy with no item keeps its evidence
+in the entry. Entries up to `7f422d7` predate this format and are left as written.
+
 - **Deployed (2026-06-25):** Sprint 1 — photo fix, token redaction, no-areas guard,
   M1 input validation, M2 /setlabel normalisation, M3 thread-safe config.
 - **Deployed (2026-06-25):** H2 config split — `config.yaml` untracked,
@@ -124,6 +130,21 @@ Last updated: 2026-11-24
     and A+++++ to C. `config.yaml` was not rewritten (mtime still 2026-11-23 13:55,
     no `.tmp`).
   - 0 WARNING/ERROR lines since the restart.
+- **Deployed (2026-11-24 15:20, `7f422d7`):** C16, C17, `/setdate` below 1 refused, and
+  the `/run` skip reply (see Review follow-ups, item 12). 136/136 tests. `pip freeze`
+  unchanged. C16's unit was installed by hand (`cp` + `daemon-reload`): the installed
+  unit equals the repo's, and `systemctl show` lists `network-online.target` in both
+  `After` and `Wants`. **Confirmed live** 2026-11-24:
+  - The startup scrape returned `0 listings (total available: 0)` with the same search
+    URL as before the deploy, and the log showed `Scheduler started: 14 runs a day`.
+  - Owner `/setdate 0` (received 0 s after sending) answered `Not changed: publication
+    days must be 1 or more.` `publication_days` is still 3, `config.yaml` was not
+    rewritten (mtime still 2026-11-23 13:55), and there was no `.tmp`.
+  - Owner `/run` (received 1 s after sending) answered `All caught up`.
+  - 0 WARNING/ERROR lines since the restart, and 0 journal errors.
+
+  **Not yet confirmed live:** C16 needs a reboot; at the next one, the startup scrape
+  should succeed. C17 can't be tested live: email isn't enabled.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -264,7 +285,7 @@ is revoked.
 
 ---
 
-## Review follow-ups · DONE ON `dev`, DEPLOY PENDING · 2026-11-24
+## Review follow-ups · DONE · 2026-11-24
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
@@ -274,6 +295,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
 4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
    (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
+   Local evidence, 2026-11-24: a live 45-match page (Amsterdam, 1 day) parsed 15 of 15
+   with no WARNING.
 5. **V1 — record the product direction.** **Decided 2026-11-23:** single-user for now.
    Multi-user, multi-channel and the setup wizard are parked, to revisit once the
    running topics are cleared. Recorded in Future Vision below.
@@ -392,17 +415,17 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       19:00:02.8 and a `/run` started at 19:00:44. Runs take 1.2 s at the median and
       about 20 s at most, so the window is seconds after each scheduled run. Worst case:
       one duplicate message.
-    - **Done 2026-11-24 on `dev`, not deployed** (owner's choices from the 2026-11-24
-      review of the plan; 136/136 tests):
+    - **Done 2026-11-24, deployed in `7f422d7`** (owner's choices from the 2026-11-24
+      review of the plan; confirmed live, see the status snapshot):
       - C16 (`59b2c36`, docs `3f59604`), option A. The unit waits for
         `network-online.target` (`Wants=` + `After=`) instead of `network.target`.
         Evidence: `systemd-networkd-wait-online` is enabled on the server, so the target
         waits for real. The server has booted once since install (2026-03-23), and that
         startup scrape succeeded 6 s after boot, so the race was never seen. Starting too
         early would fail the startup scrape and the drain of old Telegram commands, so
-        commands sent while the server was down would replay. **Deploy needs the manual
-        unit install** in [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier:
-        only a reboot tests it; at the next one, the startup scrape should succeed.
+        commands sent while the server was down would replay. The unit was installed by
+        hand, per [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier: only a
+        reboot tests it. If the startup scrape fails at the next one, the fix is wrong.
       - C17 (`3e9b8da`), option A. The HTML email escapes every listing value. Latent:
         the server has never run email (`EMAIL_*` empty, no email lines in any log).
         Ordinary values render as before (a test pins it).
@@ -490,12 +513,16 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   ShallowRef outage proved. Detection is the scrape-failure alert, plus
   `main.log` (see the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md)).
 - **What the scrape-failure alert can't see:**
-  - *A change that zeroes the match count too.* On a 0-match page Funda sends the total
-    as `['EmptyRef', i]` → the string `'0'` (live page, 2026-11-20). `unwrap()` doesn't
-    know `EmptyRef`, so the parser coerces any non-int total to 0. That's what keeps
-    quiet days quiet (45% of runs), but it also means a shape change that broke both the
-    total and the listings would still read as a quiet day. Closing it means decoding
-    `EmptyRef`, then treating a non-int total as a failure; not done.
+  - *A change that zeroes the match count too.* **Fixed on `dev` (`9509fb5`), not yet
+    deployed; until then, production still has this gap.** On a 0-match page Funda sends
+    the total as `['EmptyRef', i]` → `'0'`; with matches, `['Ref', i]` → N (live pages,
+    2026-11-24). `EmptyRef` is Nuxt's marker for a falsy value stored as JSON text (its
+    `revive-payload` plugin). Deployed, the parser coerces any non-int total to 0, which
+    keeps quiet days quiet (45% of runs) but means a shape change that broke both the
+    total and the listings still reads as a quiet day. The fix decodes `EmptyRef` the
+    way Nuxt does and fails the scrape on a total that still isn't a number
+    (`Total listings count is not a number`). Falsifier: after the deploy, a quiet run
+    fails with that message.
   - *A partial parse* (Funda reports 5, 3 parse) is not a failure. Since 2026-11-23 it
     logs a `Skipped … listings while parsing` WARNING, but it doesn't alert.
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
