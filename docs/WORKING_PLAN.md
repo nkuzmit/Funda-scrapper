@@ -506,7 +506,9 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   commands sent meanwhile wait.
   **Measuring it:** each command logs `Command /x received Ns after sending` (deployed
   with L5, 2026-11-20 17:23). Run `grep "received" main.log` and compare slow ones with
-  nearby `Polling error` warnings and `/run` scrapes. Samples so far: 3, all 0–3 s.
+  nearby `Polling error` warnings and `/run` scrapes. Samples 2026-11-20 → 2026-11-24
+  (server `main.log`, checked 2026-11-24): 14, all 0–3 s. This times only the inbound
+  side, so it can't see a delay in sending the reply.
   **Lead (2026-11-23, not acted on — owner's choice):** the delay can also be on the
   reply side. A `/run` at 10:43 arrived in 1 s, but the bot took 10.15 s to send
   "Running scrape..." (received 10:43:02.001 → scrape started 10:43:12.155, no send
