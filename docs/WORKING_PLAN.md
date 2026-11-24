@@ -112,6 +112,18 @@ Last updated: 2026-11-24
     the restart.
 
   **Not yet confirmed live:** C4 and `no url`, as above.
+- **Deployed (2026-11-24 14:44, `0d943df`):** C10 (`320c2c1`). `/setprice`, `/setfloor`
+  and `/setlabel` refuse inputs that would match no listing (see Review follow-ups,
+  item 12). 130/130 tests. `pip freeze` still equals the pins. **Confirmed live**
+  2026-11-24:
+  - Startup scrape `0 listings (total available: 0)`, `Scheduler started: 14 runs a
+    day`. The search URL is identical to the runs before the deploy.
+  - Owner `/setprice 900000 500000` answered `Not changed: each bound must be above 0
+    …`, and `/setlabel a b cc` answered `Not changed: unknown energy label(s) CC. Valid:
+    …`. Both were received 1 s after sending. `/filters` still shows €550.000–€720.000
+    and A+++++ to C. `config.yaml` was not rewritten (mtime still 2026-11-23 13:55,
+    no `.tmp`).
+  - 0 WARNING/ERROR lines since the restart.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -349,7 +361,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
         they differ in key, reply wording and lowercasing, and a helper would need a
         parameter for each.
-    - **Done 2026-11-24, not deployed:**
+    - **Done 2026-11-24, deployed in `0d943df`** (confirmed live, see the status
+      snapshot):
       - C10 (`320c2c1`), option A (owner's choice; B, A plus `/setdate` ≤ 10 and a
         slug-shape check, and C, docs only, were rejected). Inputs that made every
         listing fail `matches_filters`, so the bot said "All caught up" forever, are now
