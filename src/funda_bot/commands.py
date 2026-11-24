@@ -221,14 +221,14 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addarea utrecht/oudwijk")
             return
         slug = args[0]
-        areas = filters.setdefault('areas', [])
-        if slug in areas:
-            _send(bot_token, chat_id, f"Already in list: {slug}")
-        else:
-            with _CONFIG_LOCK:
+        # setdefault may insert the key, so it needs the lock too (review C9).
+        with _CONFIG_LOCK:
+            areas = filters.setdefault('areas', [])
+            added = slug not in areas
+            if added:
                 areas.append(slug)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Area added: {slug}")
+        _send(bot_token, chat_id, f"Area added: {slug}" if added else f"Already in list: {slug}")
 
     elif cmd == '/removearea':
         if not args:
@@ -265,14 +265,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addkeyword tuin")
             return
         word = args[0].lower()
-        keywords = filters.setdefault('keywords', [])
-        if word in keywords:
-            _send(bot_token, chat_id, f"Already in list: {word}")
-        else:
-            with _CONFIG_LOCK:
+        with _CONFIG_LOCK:
+            keywords = filters.setdefault('keywords', [])
+            added = word not in keywords
+            if added:
                 keywords.append(word)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Keyword added: {word}")
+        _send(bot_token, chat_id, f"Keyword added: {word}" if added else f"Already in list: {word}")
 
     elif cmd == '/removekeyword':
         if not args:
@@ -293,14 +292,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addamenity bathtub")
             return
         word = args[0].lower()
-        amenities = filters.setdefault('amenities', [])
-        if word in amenities:
-            _send(bot_token, chat_id, f"Already in list: {word}")
-        else:
-            with _CONFIG_LOCK:
+        with _CONFIG_LOCK:
+            amenities = filters.setdefault('amenities', [])
+            added = word not in amenities
+            if added:
                 amenities.append(word)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Amenity added: {word}")
+        _send(bot_token, chat_id, f"Amenity added: {word}" if added else f"Already in list: {word}")
 
     elif cmd == '/removeamenity':
         if not args:

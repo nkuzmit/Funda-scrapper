@@ -320,11 +320,16 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         left in both CLAUDE.md and Sprint 3: they're identical, and the branch is parked.
       - C19 addendum: the local `fix/h2-config-split` was deleted. It was an unpushed
         draft of H2 (`257740d`), replaced by `0b6edeb`, which is in dev.
+      - C9, D12 (`124ad94`). The three list adds now run `setdefault` under
+        `_CONFIG_LOCK`. Inserting a missing key unlocked could break a scheduled run's
+        deep copy. It couldn't happen on the server, whose config has all three keys.
+        That makes M3's "guards every mutation" true (D12). A test fails on the old code.
+      - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
+        they differ in key, reply wording and lowercasing, and a helper would need a
+        parameter for each.
     - **Still open, need a design choice:**
-      - C9 / D12: lock coverage.
       - C10: unenforced input limits.
       - C11: `/run` and a scheduled run can overlap.
-      - C14: repetitive add/remove handlers.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
 
