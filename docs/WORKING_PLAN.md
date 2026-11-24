@@ -91,6 +91,27 @@ Last updated: 2026-11-24
 
   **Not yet confirmed live:** a run with matches. The C4 falsifier above applies to the
   new `no url` reason too.
+- **Deployed (2026-11-24 14:33, `3581b14`):** review follow-ups C8, C9 and C20, the
+  transitive pins (`1b05367`), and docs. None of it changes what the bot does:
+  - C8: one `config.yaml` path and one `_redact` (`e66fcb1`).
+  - C9: the three list adds run `setdefault` under the lock (`124ad94`).
+  - C20: pytest collects only `tests/` (`857702e`), which the server never runs.
+
+  120/120 tests on 3.12.3. Before the deploy, the server's `pip freeze` equalled the new
+  pins, and it still did after. **Confirmed live** 2026-11-24:
+  - `Scheduler started: 14 runs a day`, matching `schedule.hours`.
+  - C8: the startup scrape's search URL is byte-identical to the 14:00 run's from
+    before the deploy (21 areas, `floor_area="80-130"`). The same `config.yaml` was
+    loaded.
+  - The startup scrape and an owner `/run` (14:34, received 0 s after sending) both
+    returned `0 listings (total available: 0)`. `/run` answered `All caught up`.
+  - C9: owner `/addarea utrecht/oudwijk` (14:35, already in the list) answered
+    `Already in list: utrecht/oudwijk`. `config.yaml` was not rewritten (mtime still
+    2026-11-23 13:55).
+  - 0 ERROR, `Scrape failed`, `Skipped`, `Polling error` or `Failed to send` lines since
+    the restart.
+
+  **Not yet confirmed live:** C4 and `no url`, as above.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -289,7 +310,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C18: pytest pinned (`dfabf68`).
       - D16: README (`e2d1aea`).
       - C19, local part: the 27 local branches merged into `dev` are deleted.
-    - **Done 2026-11-23, the owner's call:**
+    - **Done 2026-11-23, the owner's call** (the code changes, C8, C9 and C20, deployed
+      in `3581b14` on 2026-11-24; see the status snapshot):
       - C19 leftovers. Deleted `origin/fix/h2-apply` and `origin/fix/m3-thread-safety`;
         neither had commits that `dev` lacked. Deleted `/root/funda-config.bak` on the
         server, the backup from the 2026-06-25 config migration; the live `config.yaml`
@@ -327,21 +349,26 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
         they differ in key, reply wording and lowercasing, and a helper would need a
         parameter for each.
-    - **Still open, need a design choice:**
-      - C10: unenforced input limits. Checked 2026-11-24, from the code only:
-        - **The bot goes quiet without an error** (every run "All caught up") for
-          `/setprice` or `/setfloor` with min > max: `matches_filters` rejects every
-          listing. Probably also for an unknown `/setlabel` value, which rejects every
-          labelled listing locally.
-        - `/setdate` above the documented max of 10: Funda's response is unknown. The
-          "do not exceed 10" note (`9082981`, 2026-03-19) gives no reason.
-        - An `/addarea` typo: only Funda knows real slugs, so the bot can only check
-          the shape.
-        - Negative numbers are accepted.
+    - **Done 2026-11-24, not deployed:**
+      - C10 (`320c2c1`), option A (owner's choice; B, A plus `/setdate` ≤ 10 and a
+        slug-shape check, and C, docs only, were rejected). Inputs that made every
+        listing fail `matches_filters`, so the bot said "All caught up" forever, are now
+        refused with `Not changed: …` and `config.yaml` is left alone:
+        - `/setprice` and `/setfloor`: each bound must be above 0 or `null`, and
+          min ≤ max. That covers min > max, a floor max of 0 and a negative max. It also
+          refuses a price of 0 (which meant "no bound" by accident) and a negative min.
+          Neither was quiet, but `null` already says that.
+        - `/setlabel`: every label must be one of the 12 the bot knows (`A+++++` … `G`).
+          Evidence for the form: the server sends those strings to Funda, and the
+          listings delivered on 2026-11-20 passed the local label check.
 
-        Options put to the owner: A, reject the inputs that make the bot go quiet
-        (recommended); B, A plus the documented limits and a slug-shape check; C, docs
-        only.
+        Left as they were: `/setdate` above 10 (Funda's response is unknown; the "do not
+        exceed 10" note, `9082981`, gives no reason), `/addarea` typos (only Funda knows
+        real slugs), `/setrooms`, and values already in `config.yaml` (only commands are
+        checked). 130/130 tests; the 7 rejection tests fail on the old code. Falsifier:
+        Funda shows a listing whose label isn't one of the 12, and the owner wants to
+        filter on it.
+    - **Still open, need a design choice:**
       - C11: `/run` and a scheduled run can overlap.
       - C16: `network-online.target`.
       - C17: HTML email escaping.

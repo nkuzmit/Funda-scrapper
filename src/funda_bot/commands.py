@@ -93,6 +93,24 @@ def _save_config(config: dict):
     os.replace(tmp, _CONFIG_PATH)
 
 
+def _range_can_match(low, high) -> bool:
+    """True if a /setprice or /setfloor range can match a listing (review C10).
+
+    Each bound must be above 0 or None (no bound), and low <= high. Before, any
+    integers were saved, and min > max, a floor max of 0 or a negative max made
+    every listing fail matches_filters: the bot said "All caught up" forever.
+    """
+    if any(bound is not None and bound <= 0 for bound in (low, high)):
+        return False
+    return low is None or high is None or low <= high
+
+
+_RANGE_REJECTED = (
+    "Not changed: each bound must be above 0 (use null for no bound), "
+    "and min can't exceed max."
+)
+
+
 def _fmt_filters(filters: dict) -> str:
     """Format filters dict as a readable string."""
     areas = filters.get('areas') or []
@@ -173,6 +191,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setprice 500000 900000  (use null for no bound)")
             return
+        if not _range_can_match(price_min, price_max):
+            _send(bot_token, chat_id, _RANGE_REJECTED)
+            return
         with _CONFIG_LOCK:
             filters['price_min'] = price_min
             filters['price_max'] = price_max
@@ -197,8 +218,19 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         if not args:
             _send(bot_token, chat_id, "Usage: /setlabel A B C")
             return
+        labels = [a.upper() for a in args]
+        # A label Funda doesn't use matches no listing: a typo would silently drop
+        # every listing with the label meant (review C10).
+        unknown = [label for label in labels if label not in _LABEL_ORDER]
+        if unknown:
+            _send(
+                bot_token, chat_id,
+                f"Not changed: unknown energy label(s) {' '.join(unknown)}. "
+                f"Valid: {' '.join(_LABEL_ORDER)}",
+            )
+            return
         with _CONFIG_LOCK:
-            filters['energy_labels'] = [a.upper() for a in args]
+            filters['energy_labels'] = labels
             _save_config(config)
         _send(bot_token, chat_id, f"Energy labels set: {' '.join(args)}")
 
@@ -253,6 +285,9 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             floor_max = None if args[1] == 'null' else int(args[1])
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setfloor 90 130  (use null for no bound)")
+            return
+        if not _range_can_match(floor_min, floor_max):
+            _send(bot_token, chat_id, _RANGE_REJECTED)
             return
         with _CONFIG_LOCK:
             filters['floor_area_min'] = floor_min
