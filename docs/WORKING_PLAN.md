@@ -349,21 +349,26 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
         they differ in key, reply wording and lowercasing, and a helper would need a
         parameter for each.
-    - **Still open, need a design choice:**
-      - C10: unenforced input limits. Checked 2026-11-24, from the code only:
-        - **The bot goes quiet without an error** (every run "All caught up") for
-          `/setprice` or `/setfloor` with min > max: `matches_filters` rejects every
-          listing. Probably also for an unknown `/setlabel` value, which rejects every
-          labelled listing locally.
-        - `/setdate` above the documented max of 10: Funda's response is unknown. The
-          "do not exceed 10" note (`9082981`, 2026-03-19) gives no reason.
-        - An `/addarea` typo: only Funda knows real slugs, so the bot can only check
-          the shape.
-        - Negative numbers are accepted.
+    - **Done 2026-11-24, not deployed:**
+      - C10 (`320c2c1`), option A (owner's choice; B, A plus `/setdate` ≤ 10 and a
+        slug-shape check, and C, docs only, were rejected). Inputs that made every
+        listing fail `matches_filters`, so the bot said "All caught up" forever, are now
+        refused with `Not changed: …` and `config.yaml` is left alone:
+        - `/setprice` and `/setfloor`: each bound must be above 0 or `null`, and
+          min ≤ max. That covers min > max, a floor max of 0 and a negative max. It also
+          refuses a price of 0 (which meant "no bound" by accident) and a negative min.
+          Neither was quiet, but `null` already says that.
+        - `/setlabel`: every label must be one of the 12 the bot knows (`A+++++` … `G`).
+          Evidence for the form: the server sends those strings to Funda, and the
+          listings delivered on 2026-11-20 passed the local label check.
 
-        Options put to the owner: A, reject the inputs that make the bot go quiet
-        (recommended); B, A plus the documented limits and a slug-shape check; C, docs
-        only.
+        Left as they were: `/setdate` above 10 (Funda's response is unknown; the "do not
+        exceed 10" note, `9082981`, gives no reason), `/addarea` typos (only Funda knows
+        real slugs), `/setrooms`, and values already in `config.yaml` (only commands are
+        checked). 130/130 tests; the 7 rejection tests fail on the old code. Falsifier:
+        Funda shows a listing whose label isn't one of the 12, and the owner wants to
+        filter on it.
+    - **Still open, need a design choice:**
       - C11: `/run` and a scheduled run can overlap.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
