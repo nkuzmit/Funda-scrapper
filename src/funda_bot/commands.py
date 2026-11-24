@@ -165,12 +165,18 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
 
     elif cmd == '/run':
         _send(bot_token, chat_id, "Running scrape...")
-        result = scrape_fn()  # main.RunResult(delivered, failed, error)
-        # Never report a failed scrape or delivery as "nothing new" (2026-11-20).
+        result = scrape_fn()  # main.RunResult(delivered, failed, error, skipped)
+        # Never report a failed scrape or delivery, or a skipped run, as
+        # "nothing new" (2026-11-20; the skip since 2026-11-24).
         if result.error:
             _send(
                 bot_token, chat_id,
                 f"⚠️ Run failed: {result.error}\n\nSee main.log — will retry next run.",
+            )
+        elif result.skipped:
+            _send(
+                bot_token, chat_id,
+                f"Not run: {result.skipped}. Add an area first, e.g. /addarea utrecht/oudwijk",
             )
         elif result.failed:
             _send(
