@@ -5,7 +5,8 @@ Guidance for Claude Code working in this repo. Keep it short; link, don't restat
 ## What this is
 
 A personal bot that watches funda.nl for new for-sale listings and pushes matches to
-Telegram (and optionally email / WhatsApp). Python, single-user, deployed on a Linux
+Telegram (and optionally email / WhatsApp). Python, single-user (for now; multi-user
+is parked, see [WORKING_PLAN Future Vision](docs/WORKING_PLAN.md)), deployed on a Linux
 VPS as a systemd service. Design ethos: **AK-47** — simple, robust, no overengineering
 (see `.github/instructions/instruction.instructions.md`, the single home for that text).
 
@@ -23,9 +24,11 @@ venv/Scripts/python main.py          # run the bot locally
 
 ## Conventions
 
-- **venv Python only** — system Python (also 3.14.x) lacks the deps.
+- **venv Python only** — the venv is 3.12, like production; system Python (3.14.x)
+  lacks the deps.
 - **Test before commit**; `pytest` green is the gate.
-- **Branch model is 3-tier**: `feat/*`|`fix/*` → `dev` → `main`. `main` is the deploy
+- **Branch model is 3-tier**: a short-lived `<kind>/<topic>` branch → `dev` → `main`
+  (the kinds are listed in CONTRIBUTING). `main` is the deploy
   trunk (**never commit directly**); `dev` is integration (**never accumulate
   speculative work there either**); cut a branch for anything multi-file or uncertain.
   Full workflow in [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -46,6 +49,27 @@ venv/Scripts/python main.py          # run the bot locally
   change, raise it as a discussion before editing.
 - **Read the whole file before editing it** — not just the relevant function.
 
+## Change discipline
+
+Every rule here was added after breaking something. Rules alone don't hold:
+**when the owner pushes back or asks for the four answers below, stop iterating and
+answer them.** That interrupt has stopped more bad fixes than any rule.
+
+- **Before editing:** state the current behaviour in plain English, and name the
+  known-good baseline (link the commit).
+- **No magic-value sentinel returns.** Use `None`, an exception or a typed result. One
+  value for both "nothing found" and "everything broke" is a bug generator (the scraper's
+  empty list until 2026-11-20; now `ScrapeError`).
+- **Before committing:** re-read the diff line by line; confirm nothing was deleted by
+  accident.
+- **A theory isn't confirmed because the fix worked.** Rule out side effects: added
+  latency masking a race, a restart clearing state, a rate-limit window expiring.
+- **When a change is reverted,** amend the plan and memory in the same session. Never
+  leave "this is the fix" pointing at reverted code.
+- **Don't take past commit messages, merge claims or WORKING_PLAN entries as
+  authoritative** without re-checking, especially when the conditions behind them have
+  changed.
+
 ## Codebase review
 
 When the user says **"please review"**: review the codebase *and* documentation and give
@@ -62,10 +86,13 @@ Answer all four in plain text, in the response, first:
 
 1. **What runtime data confirms the failure?** A `main.log` excerpt,
    `journalctl -u funda-bot`, `systemctl status funda-bot`, a live `/run`, or a saved
-   copy of the page that failed to parse. *Not* "the user said it broke".
-2. **What past decision or doc claim is the fix based on?** Cite the commit or doc line.
+   copy of the page that failed to parse. *Not* "the user said it broke" or "a previous
+   session said so".
+2. **What past decision or doc claim is the fix based on?** Cite the commit or doc line,
+   and the conditions it was made under.
 3. **Have those conditions been re-verified now?** Yes / No.
-4. **What would prove this fix wrong?** State the falsifier before shipping.
+4. **What would prove this fix wrong?** State the falsifier before shipping. If you
+   can't name one, the fix is speculation.
 
 **If (3) is "no" or (4) is "I don't know" — diagnose, don't fix.**
 
@@ -73,14 +100,16 @@ Answer all four in plain text, in the response, first:
 
 Treat each of these as a data-collection request, not a fix request:
 
-- "It was working last week" / "we had a good version before"
+- "It was working last week" / "we had a good version before" — find the actual delta;
+  the remembered date is often wrong
 - "The bot went quiet" — quiet is still ambiguous; check `main.log` for
   `Scrape failed:` / `Error in scrape_and_notify` (the reason follows: `bot-challenge`,
   `Nuxt payload not found`, `HTTP error`, `Parsed 0 listings but Funda reports`, …) and,
   in pre-2026-11-20 logs, `0 listings (total available: N)` with N > 0
 - "Funda must have changed their site" — verify against a saved page first
 - "Just change the User-Agent" / "just bump the timeout" — that's masking, not fixing
-- "We tried X already and it didn't work" — re-verify under current conditions
+- "We tried X already and it didn't work" — re-verify under current conditions; the
+  earlier try may have been contaminated (rate-limited IP, stale config, a challenge page)
 - "The doc says X but the code does Y" — both are suspect until checked against runtime
 
 ## What NOT to do

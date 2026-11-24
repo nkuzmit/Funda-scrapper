@@ -9,7 +9,6 @@ command table mirrors it.
 
 import logging
 import os
-import re
 import threading
 import time
 from pathlib import Path
@@ -17,18 +16,13 @@ from pathlib import Path
 import requests
 import yaml
 
+# One redaction for every log line that may carry a credential (review C8).
+from funda_bot.notifier import _redact
+
 logger = logging.getLogger(__name__)
 
-# Telegram bot tokens appear in api.telegram.org URLs, which surface inside
-# requests' exception messages. Scrub them before anything reaches the logs.
-_TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
-
-
-def _redact(text) -> str:
-    """Remove Telegram bot tokens from a string before logging."""
-    return _TOKEN_RE.sub('bot<redacted>', str(text))
-
-
+# The live config: main.load_config reads it, _save_config writes it. Both use
+# this one path, so they can't drift apart (review C8).
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
 _CONFIG_LOCK = threading.Lock()
 
@@ -227,14 +221,14 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addarea utrecht/oudwijk")
             return
         slug = args[0]
-        areas = filters.setdefault('areas', [])
-        if slug in areas:
-            _send(bot_token, chat_id, f"Already in list: {slug}")
-        else:
-            with _CONFIG_LOCK:
+        # setdefault may insert the key, so it needs the lock too (review C9).
+        with _CONFIG_LOCK:
+            areas = filters.setdefault('areas', [])
+            added = slug not in areas
+            if added:
                 areas.append(slug)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Area added: {slug}")
+        _send(bot_token, chat_id, f"Area added: {slug}" if added else f"Already in list: {slug}")
 
     elif cmd == '/removearea':
         if not args:
@@ -271,14 +265,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addkeyword tuin")
             return
         word = args[0].lower()
-        keywords = filters.setdefault('keywords', [])
-        if word in keywords:
-            _send(bot_token, chat_id, f"Already in list: {word}")
-        else:
-            with _CONFIG_LOCK:
+        with _CONFIG_LOCK:
+            keywords = filters.setdefault('keywords', [])
+            added = word not in keywords
+            if added:
                 keywords.append(word)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Keyword added: {word}")
+        _send(bot_token, chat_id, f"Keyword added: {word}" if added else f"Already in list: {word}")
 
     elif cmd == '/removekeyword':
         if not args:
@@ -299,14 +292,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             _send(bot_token, chat_id, "Usage: /addamenity bathtub")
             return
         word = args[0].lower()
-        amenities = filters.setdefault('amenities', [])
-        if word in amenities:
-            _send(bot_token, chat_id, f"Already in list: {word}")
-        else:
-            with _CONFIG_LOCK:
+        with _CONFIG_LOCK:
+            amenities = filters.setdefault('amenities', [])
+            added = word not in amenities
+            if added:
                 amenities.append(word)
                 _save_config(config)
-            _send(bot_token, chat_id, f"Amenity added: {word}")
+        _send(bot_token, chat_id, f"Amenity added: {word}" if added else f"Already in list: {word}")
 
     elif cmd == '/removeamenity':
         if not args:

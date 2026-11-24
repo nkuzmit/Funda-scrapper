@@ -181,6 +181,7 @@ funda-bot.service        systemd unit for the VPS
 .env.example             Template for .env
 requirements.txt         Runtime dependencies
 requirements-dev.txt     Development dependencies (pytest)
+pytest.ini               Limits pytest to tests/
 CONTRIBUTING.md          Local setup, branch workflow, deploy command
 CLAUDE.md                Working rules for AI-assisted sessions
 .github/instructions/    The project's AK-47 ethos

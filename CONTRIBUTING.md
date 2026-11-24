@@ -4,8 +4,11 @@ A personal project, but these conventions keep deploys boring and safe.
 
 ## Local setup
 
+Use **Python 3.12**, the version production runs, so tests run on the same interpreter.
+If you don't have it, `uv python install 3.12.3` will install it.
+
 ```bash
-python3 -m venv venv
+python3.12 -m venv venv
 venv/Scripts/pip install -r requirements.txt -r requirements-dev.txt   # Windows
 # venv/bin/pip on Linux
 ```
@@ -19,7 +22,8 @@ venv/Scripts/python -m pytest -q       # tests
 
 ## Workflow
 
-Three tiers: `feat/*` | `fix/*` → `dev` → `main`.
+Three tiers: a short-lived `<kind>/<topic>` branch → `dev` → `main`. The kinds in use
+are `feat/`, `fix/`, `docs/`, `test/` and `deps/`.
 
 ```
 feat/listing-history ─┐
@@ -32,7 +36,7 @@ docs/whatever ────────┘        (deploy gate)
 - **`dev` is the integration branch.** Finished, tested work accumulates here. Don't
   accumulate speculative or half-finished work on it either — that's what the
   per-change branches are for.
-- **One branch per fix/feature**, cut from `dev` (e.g. `fix/h2-config-split`).
+- **One branch per change**, cut from `dev` (e.g. `fix/scraper-retry`).
   Implement + test there, then merge to `dev` once it works. As soon as a task touches
   more than one file or carries any uncertainty about the approach, branch first.
 - **Merge `dev` → `main` only when you intend to deploy.** That merge is the gate.

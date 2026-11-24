@@ -4,7 +4,7 @@ Living development plan for the Funda Scraper Bot, and the source of truth for
 sprint status and backlog priority. Update this file in the same session you
 change behaviour or status (see the stale-doc audit rule in [CLAUDE.md](../CLAUDE.md)).
 
-Last updated: 2026-11-23
+Last updated: 2026-11-24
 
 ## Status snapshot
 
@@ -74,6 +74,23 @@ Last updated: 2026-11-23
   and the WARNING is noise (the falsifier).
   Server logs 2026-03-19 → 2026-11-23 (3,562 page lines): N < M only on the 172 ShallowRef
   outage runs (N = 0). A partial parse never happened.
+- **Deployed (2026-11-23 14:46, `7aa804c`):** review follow-ups 6, 7, 11 and hygiene
+  batch 1. In production terms:
+  - A listing without a URL is a parser skip, and a renamed URL field fails the scrape
+    instead of reading as a quiet day.
+  - WhatsApp credentials are redacted from logs.
+  - The bot-challenge check is one clause instead of two (same pages match).
+  - The pins equal the server's packages.
+
+  116/116 tests on 3.14.3, and on 3.12.3 with the server's packages. This was the first
+  deploy with `pip install` in the command: a `pip freeze` diff before and after was
+  empty. **Confirmed live** 2026-11-23:
+  - The startup scrape and an owner `/run` (14:47) both returned `0 listings (total
+    available: 0)`. `/run` was received 0 s after sending and answered `All caught up`.
+  - 0 WARNING/ERROR lines in `main.log`, and 0 errors in the systemd journal.
+
+  **Not yet confirmed live:** a run with matches. The C4 falsifier above applies to the
+  new `no url` reason too.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -222,81 +239,141 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
 4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
    (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
-5. **V1 — record the product direction** (owner's call, no code): CLAUDE.md says
-   single-user, Future Vision below says multi-user, and the 2026-08 "pivot" isn't
-   written down. If multi-user, C5, C7, C3/C12 and C11 move up.
+5. **V1 — record the product direction.** **Decided 2026-11-23:** single-user for now.
+   Multi-user, multi-channel and the setup wizard are parked, to revisit once the
+   running topics are cleared. Recorded in Future Vision below.
 6. **A listing without a URL is dropped silently** (found during C4). `scrape_funda`'s
    duplicate check skips it with no log line, after it has already been counted in
-   `Page N: X listings`. **Done on `dev` (`25acd5e`), not deployed.** It's now a parser
+   `Page N: X listings`. **Done, deployed** (`25acd5e`, in `7aa804c`). It's now a parser
    skip (`no url`) in the C4 WARNING. If *every* listing lacks a URL while Funda
    reports matches (a renamed field), the scrape raises `ScrapeError` and alerts.
    Before, that read as a quiet day.
-7. **C6 — test on Python 3.12**, which production runs. **Done on `dev`, 2026-11-23,
-   not deployed** (tests, pins and docs only; nothing changes on the server). The suite
+7. **C6 — test on Python 3.12**, which production runs. **Done, deployed** in `7aa804c`
+   (tests, pins and docs only; the server's packages didn't change). The suite
    on 3.12.3 found one test that only worked on 3.13+ (`635972f`). The server's packages
    predated the M5 pins: APScheduler 3.11.2 and PyYAML 6.0.3 since 2026-03-19, never the
-   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Open (owner's
-   choice):** how routine tests run on 3.12. See Known risks.
+   pinned 3.10.4 and 6.0.1. The pins now match production (`e71a97f`). **Owner's choice
+   (2026-11-23):** rebuild the local `venv` on 3.12.3, the same as production (option A;
+   B a second venv, C CI, D nothing were rejected). Done the same day. The old venv's
+   extra packages were leftovers: the HTML-parsing MVP (bs4, pandas), a one-day
+   `funda-scraper` library experiment (03-16), linters run once by hand, and
+   `git-filter-repo`, already used. See Known risks.
 8. **C7 — test gaps**: a foreign chat id, token redaction, the six list commands,
-   the `config.yaml` bootstrap. **Done on `dev`, 2026-11-23** (`58ec7b2`, tests only):
+   the `config.yaml` bootstrap. **Done 2026-11-23** (`58ec7b2`, tests only, in `main`):
    21 tests, 114 in total. Each was checked against a deliberate break in the code it
    covers.
 9. **D1–D5 — operator docs**: README on empty areas, venv commands and hand edits to
    `config.yaml`; DEPLOYMENT clone path; CONTRIBUTING deploy without `pip install`.
-   **Done on `dev`, 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
-   now runs `pip install`; the first deploy with it is the next one.
+   **Done 2026-11-23** (`839f94f`, `f42d7e9`, `b3bafbd`). The deploy command
+   now runs `pip install`. It was first used for `7aa804c` and changed nothing, as
+   expected.
 10. **D8, D9 — rules outside the repo**: move binding ported rules into CONTRIBUTING;
     retire the old memory folder; the local `setup-wizard` branch's `PLAN.md` holds
     the server IP. **D9 done 2026-11-23:** CLAUDE.md's warning now says never to push
-    `setup-wizard`, and why. **D8 is the owner's call** (which rules bind; retiring a
-    memory folder on the owner's machine). The rules that exist only in assistant memory
-    are: no magic-value sentinel returns; re-read the diff line by line; a theory isn't
-    confirmed because the fix worked; amend plan and memory when a change is reverted;
-    don't trust past commits or plan entries without re-checking.
-11. **C5 — redact WhatsApp credentials from logs.** **Done on `dev` (`eff2cc6`),
-    2026-11-23, not deployed.** Done ahead of V1 because it was small and logging-only.
+    `setup-wizard`, and why. **D8 done 2026-11-23, owner's decision:** keep every rule,
+    because each was added after something broke. The rules that lived only in
+    assistant memory are now in CLAUDE.md "Change discipline", which is their one home.
+    They went to CLAUDE.md, not CONTRIBUTING, because the four questions and the
+    anti-pattern triggers already live there.
+    That section holds the "stop and answer when the owner pushes back" rule, and the
+    four questions gained the memory's detail. The old OneDrive-path memory folder was
+    deleted: nothing in it was unique or still true.
+11. **C5 — redact WhatsApp credentials from logs.** **Done, deployed** (`eff2cc6`,
+    in `7aa804c`). Done ahead of V1 because it was small and logging-only.
     The CallMeBot `apikey` and `phone` are now redacted like the Telegram token. It was
     latent: the server's channels are `[telegram]` and no key is set.
 12. **Hygiene**: C8–C20, D10–D16 as they come up.
-    - **Done on `dev`, 2026-11-23:**
+    - **Done 2026-11-23, deployed in `7aa804c`:**
       - D10, D11: docstrings (`b83a091`).
       - C15: one bot-challenge check instead of two (`24312e2`; no behaviour change).
       - C18: pytest pinned (`dfabf68`).
       - D16: README (`e2d1aea`).
       - C19, local part: the 27 local branches merged into `dev` are deleted.
-    - **Still open, the owner's call:**
-      - C19 leftovers: `origin/fix/h2-apply`, `origin/fix/m3-thread-safety`, and
-        `/root/funda-config.bak` on the server.
-      - C20: the local `test_run.py` makes a real Funda request.
-      - D15: the ethos file's bot-challenge line ("no intervention needed") predates
-        the alert.
+    - **Done 2026-11-23, the owner's call:**
+      - C19 leftovers. Deleted `origin/fix/h2-apply` and `origin/fix/m3-thread-safety`;
+        neither had commits that `dev` lacked. Deleted `/root/funda-config.bak` on the
+        server, the backup from the 2026-06-25 config migration; the live `config.yaml`
+        is a superset of it. The bot stayed `active`.
+      - C20. It was worse than the review said. pytest collected the untracked root
+        `test_run.py` on every run (there was no pytest config), and importing it ran a
+        live Funda scrape. It could also send up to 2 listings to the owner's real chat:
+        the local `.env` holds the production bot and chat, and the script never marked
+        anything as seen. This happened on every pytest run since 2026-03. Proved with
+        the network blocked: collection failed with `ScrapeError`. The owner saw no
+        repeated messages without a reason behind them. The fix: the script is deleted
+        (local only), `pytest.ini` limits collection to `tests/`, and its `.gitignore`
+        line is gone. With the guard, the suite passes with the network blocked.
+      - D15. The ethos file's bot-challenge line ("no intervention needed", from
+        2026-03) is deleted. It predated the scrape-failure alert, and README's feature
+        list owns that behaviour.
+      - C8 (`e66fcb1`). One `config.yaml` path (main imports it from commands) and one
+        `_redact` (commands imports notifier's). A test pins that load and save use the
+        same file. The owner chose option A: no renames, and the two Telegram senders
+        stay separate because they do different jobs. No behaviour change.
+      - D13, D14. The ethos file had carried a git cheat-sheet since the MVP (03-09).
+        From 06-25 to 08-15 it contradicted CLAUDE.md ("push origin main" vs. "never
+        commit to main"). The owner confirmed that no tool reads it as instructions
+        (no Copilot) and doesn't use the lines, so it now holds only the ethos.
+        The branch model was stated as `feat/*`|`fix/*`, but the merges into dev were
+        docs 32, fix 21, feat 4, deps 1, test 1. CONTRIBUTING now lists the kinds, and
+        CLAUDE.md says `<kind>/<topic>` and points there. The setup-wizard reasons are
+        left in both CLAUDE.md and Sprint 3: they're identical, and the branch is parked.
+      - C19 addendum: the local `fix/h2-config-split` was deleted. It was an unpushed
+        draft of H2 (`257740d`), replaced by `0b6edeb`, which is in dev.
+      - C9, D12 (`124ad94`). The three list adds now run `setdefault` under
+        `_CONFIG_LOCK`. Inserting a missing key unlocked could break a scheduled run's
+        deep copy. It couldn't happen on the server, whose config has all three keys.
+        That makes M3's "guards every mutation" true (D12). A test fails on the old code.
+      - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
+        they differ in key, reply wording and lowercasing, and a helper would need a
+        parameter for each.
     - **Still open, need a design choice:**
-      - C8 / D13: duplicated helpers and facts.
-      - C9 / D12: lock coverage.
-      - C10: unenforced input limits.
+      - C10: unenforced input limits. Checked 2026-11-24, from the code only:
+        - **The bot goes quiet without an error** (every run "All caught up") for
+          `/setprice` or `/setfloor` with min > max: `matches_filters` rejects every
+          listing. Probably also for an unknown `/setlabel` value, which rejects every
+          labelled listing locally.
+        - `/setdate` above the documented max of 10: Funda's response is unknown. The
+          "do not exceed 10" note (`9082981`, 2026-03-19) gives no reason.
+        - An `/addarea` typo: only Funda knows real slugs, so the bot can only check
+          the shape.
+        - Negative numbers are accepted.
+
+        Options put to the owner: A, reject the inputs that make the bot go quiet
+        (recommended); B, A plus the documented limits and a slug-shape check; C, docs
+        only.
       - C11: `/run` and a scheduled run can overlap.
-      - C14: repetitive add/remove handlers.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
-      - D14: `docs/*` branches aren't in the stated branch model.
 
 ---
 
 ## Sprint 3 — Setup wizard · PARKED
 
 The Phase-4 guided 6-step Telegram setup wizard lives on the unmerged
-`setup-wizard` branch. **Decision: park it.** It works as the seed for a bigger
-future feature — see Future Vision below.
+`setup-wizard` branch. **Decision: park it** (re-confirmed 2026-11-23). It's the seed
+for multi-user (see Future Vision below). For the single-user bot it would be a
+nice-to-have.
 
 **Do not merge or deploy** `setup-wizard` as-is: it carries a wiped `config.yaml`,
 predates the H1 no-areas fix, and needs reconciliation with H2's bootstrap logic.
 
 ---
 
-## Future Vision — Multi-user / multi-channel
+## Future Vision — Multi-user / multi-channel · PARKED · 2026-11-23
+
+**Product direction (owner, 2026-11-23): single-user, for now.** This section is the one
+home for that decision. Revisit it once the running topics (Review follow-ups, Open
+issues) are cleared.
+
+History:
+- Up to 2026-06-25, `PLAN.md` called multi-user out of scope.
+- On 2026-06-25 this section made it the goal.
+- The 2026-08 "pivot" (commit `389a865`) was an attempt at exactly this: multi-user
+  plus multi-channel. It's parked with the rest.
 
 The setup wizard is the entry point for making this bot usable by independent
-users without manual config editing. When that work resumes, the scope is:
+users without manual config editing. If this work resumes, the scope is:
 
 - **Setup wizard**: rebase `setup-wizard` on main, fix the H1/H2 regressions,
   expose it as `/start` so a new user can configure the bot conversationally.
@@ -304,7 +381,9 @@ users without manual config editing. When that work resumes, the scope is:
   (CallMeBot plumbing already exists, just needs wiring into wizard onboarding).
 - **Multi-user**: each chat_id gets its own filter config (config keyed by chat_id).
 
-This is a meaningful scope expansion — treat it as a new sprint when prioritised.
+This is a meaningful scope expansion, not wiring. Today there is one global
+`config.yaml`, one config lock and one shared seen-table, so multi-user means
+redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
 
 ---
 
@@ -355,7 +434,9 @@ This is a meaningful scope expansion — treat it as a new sprint when prioritis
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
     crash; a hang would go unnoticed. Closing that needs an outside dead-man's switch,
     which is a second moving part.
-- **The test gate runs on a different Python than production.** Production runs 3.12.3
-  and the local `venv` runs 3.14.3. A one-off check (2026-11-23) passed on 3.10.11,
-  3.12.3 (with the server's exact packages) and 3.14.3. It found one test that only
-  worked on 3.13+. Routine `pytest` still runs on 3.14 only.
+- **Local and production can drift apart again.** Since 2026-11-23 the local `venv` runs
+  Python 3.12.3 with runtime packages identical to the server's (`pip freeze` diff
+  empty). `requirements.txt` pins all 10 packages, transitive ones included
+  (`1b05367`), so packages can't drift on their own. Python can: the server's version
+  follows Ubuntu 24.04. An OS upgrade changes it, and the venv doesn't follow. Re-check
+  `venv/bin/python -V` on the server after any OS upgrade.

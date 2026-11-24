@@ -582,11 +582,13 @@ def test_list_command_round_trip(add, remove, key, typed, stored):
     with patch('funda_bot.commands._send', send), patch('funda_bot.commands._save_config') as save:
         handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
         assert config['filters'][key] == [stored]
+        assert send.call_args[0][2].endswith(f' added: {stored}')
         handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
         assert config['filters'][key] == [stored]
         assert send.call_args[0][2] == f'Already in list: {stored}'
         handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
         assert config['filters'][key] == []
+        assert send.call_args[0][2].endswith(f' removed: {stored}')
         handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
         assert send.call_args[0][2] == f'Not in list: {stored}'
     assert save.call_count == 2    # only the real add and remove write config.yaml
@@ -600,6 +602,26 @@ def test_list_command_when_the_key_is_missing(add, remove, key, typed, stored):
     with patch('funda_bot.commands._send') as send, patch('funda_bot.commands._save_config'):
         handle_command(f'{remove} {typed}', config, 'tok', '123', MagicMock())
         assert send.call_args[0][2] == f'Not in list: {stored}'
+        handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
+    assert config['filters'][key] == [stored]
+
+
+class _LockCheckingFilters(dict):
+    """A filters dict whose setdefault fails unless _CONFIG_LOCK is held."""
+    def setdefault(self, key, default=None):
+        assert _CONFIG_LOCK.locked(), f'filters.setdefault({key!r}) ran outside _CONFIG_LOCK'
+        return super().setdefault(key, default)
+
+
+@pytest.mark.parametrize('add, remove, key, typed, stored', _LIST_COMMANDS)
+def test_list_add_inserts_a_missing_key_under_the_lock(add, remove, key, typed, stored):
+    """A scheduled run deep-copies the filters under _CONFIG_LOCK. Inserting a missing
+    key at the same moment would break that copy, so the insert must hold the lock too
+    (review C9)."""
+    config = _make_config()
+    del config['filters'][key]
+    config['filters'] = _LockCheckingFilters(config['filters'])
+    with patch('funda_bot.commands._send'), patch('funda_bot.commands._save_config'):
         handle_command(f'{add} {typed}', config, 'tok', '123', MagicMock())
     assert config['filters'][key] == [stored]
 
@@ -656,6 +678,14 @@ def test_load_config_without_template_fails_clearly(main_mod, monkeypatch, tmp_p
     with pytest.raises(FileNotFoundError, match='config.example.yaml is missing'):
         main_mod.load_config()
     assert list(tmp_path.iterdir()) == []
+
+
+def test_load_and_save_use_the_same_config_file(main_mod):
+    """Filters set via Telegram must survive a restart: the file main loads is the
+    file commands saves, next to the template (review C8)."""
+    from funda_bot import commands
+    assert main_mod._CONFIG_PATH == commands._CONFIG_PATH
+    assert main_mod._CONFIG_PATH.parent == main_mod._CONFIG_EXAMPLE_PATH.parent
 
 
 def test_real_template_loads_and_has_every_section(main_mod):
