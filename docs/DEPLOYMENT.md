@@ -44,7 +44,8 @@ systemctl restart funda-bot
    matches`, `Total listings count is not a number` — the last two are payload-shape
    changes like the 2026-11-05 ShallowRef outage). Also **no** `Skipped K of L listings
    while parsing: <reasons>` WARNING: the parser dropped listings. That's a partial
-   parse, logged but not treated as a failure, so it never alerts. Two more ERROR lines to check for:
+   parse, logged but not treated as a failure, so it never alerts. Two more ERROR lines
+   to check for:
    - `Polling error: Telegram replied <code>: …`: Telegram is refusing the bot's polls,
      for example a revoked token (401) or a second poller (409). Commands won't work.
    - `Failed to send Telegram message: …`: a command reply, or the scrape-failure alert,
