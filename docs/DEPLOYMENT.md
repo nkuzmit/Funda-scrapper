@@ -41,10 +41,11 @@ systemctl restart funda-bot
 2. `tail -n 30 main.log` → a recent `Found N new listings` line, and **no**
    `Scrape failed:` or `Error in scrape_and_notify` lines (the reason follows, e.g.
    `bot-challenge`, `Nuxt payload not found`, `Parsed 0 listings but Funda reports M
-   matches` — the last one is a payload-shape change like the 2026-11-05 ShallowRef
-   outage). Also **no** `Skipped K of L listings while parsing: <reasons>` WARNING: the
-   parser dropped listings. That's a partial parse, logged but not treated as a failure,
-   so it never alerts. Two more ERROR lines to check for:
+   matches`, `Total listings count is not a number` — the last two are payload-shape
+   changes like the 2026-11-05 ShallowRef outage). Also **no** `Skipped K of L listings
+   while parsing: <reasons>` WARNING: the parser dropped listings. That's a partial
+   parse, logged but not treated as a failure, so it never alerts. Two more ERROR lines
+   to check for:
    - `Polling error: Telegram replied <code>: …`: Telegram is refusing the bot's polls,
      for example a revoked token (401) or a second poller (409). Commands won't work.
    - `Failed to send Telegram message: …`: a command reply, or the scrape-failure alert,

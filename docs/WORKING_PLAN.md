@@ -145,6 +145,18 @@ in the entry. Entries up to `7f422d7` predate this format and are left as writte
 
   **Not yet confirmed live:** C16 needs a reboot; at the next one, the startup scrape
   should succeed. C17 can't be tested live: email isn't enabled.
+- **Deployed (2026-11-24 15:48, `ded053d`):** a total that isn't a number fails the
+  scrape (`9509fb5`), closing the last known way a broken scrape read as a quiet day
+  (it was in Known risks; no item, so the evidence is here). The parser decodes
+  `EmptyRef`, Nuxt's marker for a falsy value stored as JSON text: a 0-match page's
+  total is `['EmptyRef', i]` → `'0'`, one with matches `['Ref', i]` → N (live pages,
+  2026-11-24). Before, any non-int total was read as 0. Also shipped: the docs-on-`dev`
+  rule in CONTRIBUTING (`2cac009`, no runtime effect). 148/148 tests; `pip freeze`
+  still equals the pins. **Confirmed live** 2026-11-24: the startup scrape (15:48) and
+  owner `/run` (15:49, received 0 s after sending, answered `All caught up`) both
+  returned `0 listings (total available: 0)` with the same search URL as before the
+  deploy; 0 WARNING/ERROR lines, 0 journal errors. Falsifier, for any later quiet run:
+  `Scrape failed: Total listings count is not a number`.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -513,16 +525,6 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   ShallowRef outage proved. Detection is the scrape-failure alert, plus
   `main.log` (see the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md)).
 - **What the scrape-failure alert can't see:**
-  - *A change that zeroes the match count too.* **Fixed on `dev` (`9509fb5`), not yet
-    deployed; until then, production still has this gap.** On a 0-match page Funda sends
-    the total as `['EmptyRef', i]` → `'0'`; with matches, `['Ref', i]` → N (live pages,
-    2026-11-24). `EmptyRef` is Nuxt's marker for a falsy value stored as JSON text (its
-    `revive-payload` plugin). Deployed, the parser coerces any non-int total to 0, which
-    keeps quiet days quiet (45% of runs) but means a shape change that broke both the
-    total and the listings still reads as a quiet day. The fix decodes `EmptyRef` the
-    way Nuxt does and fails the scrape on a total that still isn't a number
-    (`Total listings count is not a number`). Falsifier: after the deploy, a quiet run
-    fails with that message.
   - *A partial parse* (Funda reports 5, 3 parse) is not a failure. Since 2026-11-23 it
     logs a `Skipped … listings while parsing` WARNING, but it doesn't alert.
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
