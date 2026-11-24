@@ -6,10 +6,17 @@ ssh: `funda-bot` active, 0 ERROR lines in `main.log` since the deploy).
 Last commit: C9, list adds insert a missing key under the config lock (`124ad94`).
 
 ## Pick up here next
-- **Push `dev`, then deploy, on the owner's go.** The owner asked to push at the end of
-  the decision round. `dev` holds two code changes, C8 and C9, so a deploy follows:
-  [CONTRIBUTING.md](../CONTRIBUTING.md) "Deploy", then the smoke test in
-  [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Start the session with the deploy** (the owner's plan, 2026-11-24). `dev` holds two
+  code changes, C8 and C9, plus docs. Confirm with the owner before each outward
+  step:
+  1. Push `dev`.
+  2. Merge `dev` → `main` and push.
+  3. Deploy and run the smoke test: [CONTRIBUTING.md](../CONTRIBUTING.md) "Deploy",
+     then [DEPLOYMENT.md](DEPLOYMENT.md) "Smoke test".
+  4. Record the deploy in the WORKING_PLAN status snapshot, with the live evidence.
+
+  Neither change alters behaviour that can be seen. C8's falsifier: a `/set…` change
+  is lost after a restart. C9's falsifier: a list add fails or replies wrongly.
 - **Continue the decision round** with the open design-choice items in
   [WORKING_PLAN.md](WORKING_PLAN.md) "Review follow-ups", item 12: C10 (waiting on the
   owner, see below), then C11, C16, C17.
