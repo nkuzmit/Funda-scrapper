@@ -43,8 +43,8 @@ venv/Scripts/python main.py          # run the bot locally
   from the running system over prior-session memory that hasn't been re-verified.
   *The scraper is this project's cautionary tale*: it depends on Funda's undocumented
   Nuxt payload. Until 2026-11 every failure returned an empty list, so a wrong assumption
-  about payload shape was indistinguishable from a quiet day on the market — and a
-  shape change that zeroes the match count too still is.
+  about payload shape was indistinguishable from a quiet day on the market — and until
+  2026-11-24, so was a shape change that zeroed the match count too.
 - **Follow existing conventions and patterns.** If something looks like it should
   change, raise it as a discussion before editing.
 - **Read the whole file before editing it** — not just the relevant function.
@@ -104,7 +104,8 @@ Treat each of these as a data-collection request, not a fix request:
   the remembered date is often wrong
 - "The bot went quiet" — quiet is still ambiguous; check `main.log` for
   `Scrape failed:` / `Error in scrape_and_notify` (the reason follows: `bot-challenge`,
-  `Nuxt payload not found`, `HTTP error`, `Parsed 0 listings but Funda reports`, …) and,
+  `Nuxt payload not found`, `HTTP error`, `Parsed 0 listings but Funda reports`,
+  `Total listings count is not a number`, …) and,
   in pre-2026-11-20 logs, `0 listings (total available: N)` with N > 0
 - "Funda must have changed their site" — verify against a saved page first
 - "Just change the User-Agent" / "just bump the timeout" — that's masking, not fixing
