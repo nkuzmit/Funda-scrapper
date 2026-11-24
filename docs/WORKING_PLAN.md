@@ -157,6 +157,9 @@ in the entry. Entries up to `7f422d7` predate this format and are left as writte
   returned `0 listings (total available: 0)` with the same search URL as before the
   deploy; 0 WARNING/ERROR lines, 0 journal errors. Falsifier, for any later quiet run:
   `Scrape failed: Total listings count is not a number`.
+- **Deployed (2026-11-24 15:53, `8654717`):** docs only (the `ded053d` record, CLAUDE.md,
+  the DEPLOYMENT smoke test); no runtime change. Startup scrape `0 listings (total
+  available: 0)`, 0 WARNING/ERROR lines, 0 journal errors.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
