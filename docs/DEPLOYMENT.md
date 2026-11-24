@@ -65,7 +65,14 @@ systemctl restart funda-bot
 - Hetzner VPS (Ubuntu 24.04), systemd unit `funda-bot`, repo at `/home/Funda-scrapper`.
 - **Runs as `root`** — there is no `ubuntu` user on this server. `funda-bot.service`
   in the repo matches this as of 2026-08-15; it previously did not.
+- **A change to `funda-bot.service` needs one manual step.** `git pull` updates the
+  repo copy only; systemd runs `/etc/systemd/system/funda-bot.service`. After the
+  deploy, from the repo:
+  `cp funda-bot.service /etc/systemd/system/ && systemctl daemon-reload`.
+  A restart isn't needed for ordering changes (`After=`, `Wants=`): they apply at the
+  next boot.
 - Sanity-check after any unit change:
-  `systemctl show funda-bot -p WorkingDirectory -p User`
+  `systemctl show funda-bot -p WorkingDirectory -p User -p After -p Wants`, and
+  `diff /etc/systemd/system/funda-bot.service funda-bot.service` prints nothing.
 - Logs: `journalctl -u funda-bot -f` (system) · `tail -f main.log` (app).
 - Host/SSH/credentials are recorded in the local `project_deployment` memory (not in git).
