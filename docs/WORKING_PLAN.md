@@ -306,8 +306,13 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - D15. The ethos file's bot-challenge line ("no intervention needed", from
         2026-03) is deleted. It predated the scrape-failure alert, and README's feature
         list owns that behaviour.
+      - C8 (`e66fcb1`). One `config.yaml` path (main imports it from commands) and one
+        `_redact` (commands imports notifier's). A test pins that load and save use the
+        same file. The owner chose option A: no renames, and the two Telegram senders
+        stay separate because they do different jobs. No behaviour change.
     - **Still open, need a design choice:**
-      - C8 / D13: duplicated helpers and facts.
+      - D13: the same fact in several docs (branch workflow, setup-wizard warning;
+        the ethos file's git cheat-sheet duplicates CONTRIBUTING).
       - C9 / D12: lock coverage.
       - C10: unenforced input limits.
       - C11: `/run` and a scheduled run can overlap.

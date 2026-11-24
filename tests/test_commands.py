@@ -658,6 +658,14 @@ def test_load_config_without_template_fails_clearly(main_mod, monkeypatch, tmp_p
     assert list(tmp_path.iterdir()) == []
 
 
+def test_load_and_save_use_the_same_config_file(main_mod):
+    """Filters set via Telegram must survive a restart: the file main loads is the
+    file commands saves, next to the template (review C8)."""
+    from funda_bot import commands
+    assert main_mod._CONFIG_PATH == commands._CONFIG_PATH
+    assert main_mod._CONFIG_PATH.parent == main_mod._CONFIG_EXAMPLE_PATH.parent
+
+
 def test_real_template_loads_and_has_every_section(main_mod):
     """config.example.yaml is what a fresh install runs on: it must parse and be complete."""
     import yaml
