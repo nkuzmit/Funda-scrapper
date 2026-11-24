@@ -328,7 +328,20 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         they differ in key, reply wording and lowercasing, and a helper would need a
         parameter for each.
     - **Still open, need a design choice:**
-      - C10: unenforced input limits.
+      - C10: unenforced input limits. Checked 2026-11-24, from the code only:
+        - **The bot goes quiet without an error** (every run "All caught up") for
+          `/setprice` or `/setfloor` with min > max: `matches_filters` rejects every
+          listing. Probably also for an unknown `/setlabel` value, which rejects every
+          labelled listing locally.
+        - `/setdate` above the documented max of 10: Funda's response is unknown. The
+          "do not exceed 10" note (`9082981`, 2026-03-19) gives no reason.
+        - An `/addarea` typo: only Funda knows real slugs, so the bot can only check
+          the shape.
+        - Negative numbers are accepted.
+
+        Options put to the owner: A, reject the inputs that make the bot go quiet
+        (recommended); B, A plus the documented limits and a slug-shape check; C, docs
+        only.
       - C11: `/run` and a scheduled run can overlap.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
