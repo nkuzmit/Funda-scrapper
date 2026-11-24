@@ -91,6 +91,27 @@ Last updated: 2026-11-24
 
   **Not yet confirmed live:** a run with matches. The C4 falsifier above applies to the
   new `no url` reason too.
+- **Deployed (2026-11-24 14:33, `3581b14`):** review follow-ups C8, C9 and C20, the
+  transitive pins (`1b05367`), and docs. None of it changes what the bot does:
+  - C8: one `config.yaml` path and one `_redact` (`e66fcb1`).
+  - C9: the three list adds run `setdefault` under the lock (`124ad94`).
+  - C20: pytest collects only `tests/` (`857702e`), which the server never runs.
+
+  120/120 tests on 3.12.3. Before the deploy, the server's `pip freeze` equalled the new
+  pins, and it still did after. **Confirmed live** 2026-11-24:
+  - `Scheduler started: 14 runs a day`, matching `schedule.hours`.
+  - C8: the startup scrape's search URL is byte-identical to the 14:00 run's from
+    before the deploy (21 areas, `floor_area="80-130"`). The same `config.yaml` was
+    loaded.
+  - The startup scrape and an owner `/run` (14:34, received 0 s after sending) both
+    returned `0 listings (total available: 0)`. `/run` answered `All caught up`.
+  - C9: owner `/addarea utrecht/oudwijk` (14:35, already in the list) answered
+    `Already in list: utrecht/oudwijk`. `config.yaml` was not rewritten (mtime still
+    2026-11-23 13:55).
+  - 0 ERROR, `Scrape failed`, `Skipped`, `Polling error` or `Failed to send` lines since
+    the restart.
+
+  **Not yet confirmed live:** C4 and `no url`, as above.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -289,7 +310,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C18: pytest pinned (`dfabf68`).
       - D16: README (`e2d1aea`).
       - C19, local part: the 27 local branches merged into `dev` are deleted.
-    - **Done 2026-11-23, the owner's call:**
+    - **Done 2026-11-23, the owner's call** (the code changes, C8, C9 and C20, deployed
+      in `3581b14` on 2026-11-24; see the status snapshot):
       - C19 leftovers. Deleted `origin/fix/h2-apply` and `origin/fix/m3-thread-safety`;
         neither had commits that `dev` lacked. Deleted `/root/funda-config.bak` on the
         server, the backup from the 2026-06-25 config migration; the live `config.yaml`
