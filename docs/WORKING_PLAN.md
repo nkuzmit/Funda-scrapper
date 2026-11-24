@@ -295,6 +295,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
    (C3, C12, C13). See the status snapshot (`0ba6c32`).
 4. **Done, deployed** — log listings the parser skips (C4). See the status snapshot
    (`2cd494b`). Live confirmation pending: the first run where Funda reports matches.
+   Local evidence, 2026-11-24: a live 45-match page (Amsterdam, 1 day) parsed 15 of 15
+   with no WARNING.
 5. **V1 — record the product direction.** **Decided 2026-11-23:** single-user for now.
    Multi-user, multi-channel and the setup wizard are parked, to revisit once the
    running topics are cleared. Recorded in Future Vision below.
@@ -511,12 +513,16 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   ShallowRef outage proved. Detection is the scrape-failure alert, plus
   `main.log` (see the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md)).
 - **What the scrape-failure alert can't see:**
-  - *A change that zeroes the match count too.* On a 0-match page Funda sends the total
-    as `['EmptyRef', i]` → the string `'0'` (live page, 2026-11-20). `unwrap()` doesn't
-    know `EmptyRef`, so the parser coerces any non-int total to 0. That's what keeps
-    quiet days quiet (45% of runs), but it also means a shape change that broke both the
-    total and the listings would still read as a quiet day. Closing it means decoding
-    `EmptyRef`, then treating a non-int total as a failure; not done.
+  - *A change that zeroes the match count too.* **Fixed on `dev` (`9509fb5`), not yet
+    deployed; until then, production still has this gap.** On a 0-match page Funda sends
+    the total as `['EmptyRef', i]` → `'0'`; with matches, `['Ref', i]` → N (live pages,
+    2026-11-24). `EmptyRef` is Nuxt's marker for a falsy value stored as JSON text (its
+    `revive-payload` plugin). Deployed, the parser coerces any non-int total to 0, which
+    keeps quiet days quiet (45% of runs) but means a shape change that broke both the
+    total and the listings still reads as a quiet day. The fix decodes `EmptyRef` the
+    way Nuxt does and fails the scrape on a total that still isn't a number
+    (`Total listings count is not a number`). Falsifier: after the deploy, a quiet run
+    fails with that message.
   - *A partial parse* (Funda reports 5, 3 parse) is not a failure. Since 2026-11-23 it
     logs a `Skipped … listings while parsing` WARNING, but it doesn't alert.
   - *A dead process.* A bot that isn't running can't alert. systemd restarts it after a
