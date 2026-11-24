@@ -1,17 +1,18 @@
-# Handoff — 2026-11-23
+# Handoff — 2026-11-24
 
-Branch: `dev`, pushed to `origin/dev` · deployed: `main` @ `7aa804c` (verified on the
-server 2026-11-23 14:46; smoke test passed, including an owner `/run`). `dev` is ahead
-by docs only, no deploy needed.
-Last commit: WORKING_PLAN and this handoff record the `7aa804c` deploy.
+Branch: `dev`, 19 commits ahead of `origin/dev` (not pushed; the owner asked to push at
+the end of the decision round) · deployed: `main` @ `7aa804c` (verified on the server
+2026-11-24: `funda-bot` active, 0 ERROR lines since the deploy).
+Last commit: this handoff and WORKING_PLAN's date.
 
 ## Pick up here next
-- **Owner decisions, one at a time.** The deploy was decision 1 of 8 and is done.
-  The rest are in [WORKING_PLAN.md](WORKING_PLAN.md) "Review follow-ups":
-  - item 7: how routine tests run on Python 3.12 (next)
-  - item 5: V1, the product direction
-  - item 10: D8, which memory-only rules bind
-  - item 12: the C19 leftovers, C20, D15, then the items needing a design choice
-- **Confirm C4 and the `no url` skip live.** On the first run where Funda reports
-  matches, run `grep "Skipped" main.log`. The falsifier is in the WORKING_PLAN status
-  snapshot (`2cd494b` entry).
+- **Push `dev`** once the owner closes the decision round. It holds a code change (C8),
+  so a deploy follows on the owner's go: [CONTRIBUTING.md](../CONTRIBUTING.md) "Deploy",
+  then the smoke test in [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Decision round, item 8c onward.** The remaining design-choice items are in
+  [WORKING_PLAN.md](WORKING_PLAN.md) "Review follow-ups", item 12. 8c (C9 lock coverage
+  together with C14 repetitive handlers) is waiting on the owner: A fix C9 only
+  (recommended), B fix both with a helper, C fix the doc claim only.
+- **Confirm C4 and the `no url` skip live.** The 16 runs since the deploy all had
+  `total available: 0`. On the first run with matches, `grep "Skipped" main.log`. The
+  falsifier is in the WORKING_PLAN status snapshot (`2cd494b` entry).
