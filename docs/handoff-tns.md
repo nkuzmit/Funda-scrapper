@@ -22,7 +22,8 @@ Last commit: WORKING_PLAN records the `7f422d7` deploy and its live checks (`7f4
 
 ## Open question
 - For the owner: process weight. On 2026-11-24 there were 31 commits, 12 of them
-  merges, and the handoff was rewritten about 5 times, each on its own branch.
-  Proposal: write the handoff once per session, commit single-file docs changes
-  straight to `dev`, and keep one line per deploy in the status snapshot, with the
-  detail in the item. This needs a CONTRIBUTING / CLAUDE.md change if agreed.
+  merges, and the handoff was rewritten about 5 times. Decided 2026-11-24: the
+  handoff is committed directly on `dev` (`.claude/commands/handoff.md`). Still
+  open: write it once per session, commit other single-file docs changes straight
+  to `dev` too, and keep one line per deploy in the status snapshot, with the detail
+  in the item. That would need a CONTRIBUTING / CLAUDE.md change if agreed.
