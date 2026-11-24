@@ -174,7 +174,7 @@ src/funda_bot/
   notifier.py            Notifier protocol + Telegram / Email / WhatsApp implementations
   scheduler.py           APScheduler wrapper; runs callback at configured daily times
   commands.py            Telegram command handler + polling loop for live config changes
-tests/                   pytest suite; fixtures/nuxt_payload.json is a frozen Nuxt payload sample
+tests/                   pytest suite; fixtures/ holds frozen Nuxt payload samples
 docs/                    WORKING_PLAN.md (status, backlog) · DEPLOYMENT.md (runbook, smoke test)
 config.example.yaml      Tracked template for config.yaml
 funda-bot.service        systemd unit for the VPS
@@ -218,8 +218,9 @@ routine deploys and the dev workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - `publication_days` is applied both server-side (in the Funda search URL) and client-side (by comparing the `publication_date` field in the Nuxt payload). Listings without a date pass the client-side check unchanged. Recommended maximum is **5 days**; do not exceed 10.
 - All schedule times are interpreted in the **Europe/Amsterdam** timezone regardless of server locale.
 - The Nuxt payload is undocumented and changes without notice. A page the scraper can't
-  read, or matches Funda reports that don't parse, count as a **failed scrape** (see the
-  alert above). A change that broke the listings *and* the match count at once would still
-  look like a quiet market, so a quiet bot is strong but not perfect evidence. See the smoke
-  test in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
+  read, matches Funda reports that don't parse, or a match count that isn't a number count
+  as a **failed scrape** (see the alert above). A quiet bot is strong but not perfect
+  evidence: a page that looks exactly like a 0-match page still reads as one, and listings
+  dropped from a partial parse are only logged. See the smoke test in
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
 - On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete. A `/run` in that state replies `Not run: no areas configured`.
