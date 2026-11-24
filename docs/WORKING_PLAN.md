@@ -124,6 +124,21 @@ Last updated: 2026-11-24
     and A+++++ to C. `config.yaml` was not rewritten (mtime still 2026-11-23 13:55,
     no `.tmp`).
   - 0 WARNING/ERROR lines since the restart.
+- **Deployed (2026-11-24 15:20, `7f422d7`):** C16, C17, `/setdate` below 1 refused, and
+  the `/run` skip reply (see Review follow-ups, item 12). 136/136 tests. `pip freeze`
+  unchanged. C16's unit was installed by hand (`cp` + `daemon-reload`): the installed
+  unit equals the repo's, and `systemctl show` lists `network-online.target` in both
+  `After` and `Wants`. **Confirmed live** 2026-11-24:
+  - The startup scrape returned `0 listings (total available: 0)` with the same search
+    URL as before the deploy, and the log showed `Scheduler started: 14 runs a day`.
+  - Owner `/setdate 0` (received 0 s after sending) answered `Not changed: publication
+    days must be 1 or more.` `publication_days` is still 3, `config.yaml` was not
+    rewritten (mtime still 2026-11-23 13:55), and there was no `.tmp`.
+  - Owner `/run` (received 1 s after sending) answered `All caught up`.
+  - 0 WARNING/ERROR lines since the restart, and 0 journal errors.
+
+  **Not yet confirmed live:** C16 needs a reboot; at the next one, the startup scrape
+  should succeed. C17 can't be tested live: email isn't enabled.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -264,7 +279,7 @@ is revoked.
 
 ---
 
-## Review follow-ups · DONE ON `dev`, DEPLOY PENDING · 2026-11-24
+## Review follow-ups · DONE · 2026-11-24
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
@@ -392,17 +407,17 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       19:00:02.8 and a `/run` started at 19:00:44. Runs take 1.2 s at the median and
       about 20 s at most, so the window is seconds after each scheduled run. Worst case:
       one duplicate message.
-    - **Done 2026-11-24 on `dev`, not deployed** (owner's choices from the 2026-11-24
-      review of the plan; 136/136 tests):
+    - **Done 2026-11-24, deployed in `7f422d7`** (owner's choices from the 2026-11-24
+      review of the plan; confirmed live, see the status snapshot):
       - C16 (`59b2c36`, docs `3f59604`), option A. The unit waits for
         `network-online.target` (`Wants=` + `After=`) instead of `network.target`.
         Evidence: `systemd-networkd-wait-online` is enabled on the server, so the target
         waits for real. The server has booted once since install (2026-03-23), and that
         startup scrape succeeded 6 s after boot, so the race was never seen. Starting too
         early would fail the startup scrape and the drain of old Telegram commands, so
-        commands sent while the server was down would replay. **Deploy needs the manual
-        unit install** in [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier:
-        only a reboot tests it; at the next one, the startup scrape should succeed.
+        commands sent while the server was down would replay. The unit was installed by
+        hand, per [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier: only a
+        reboot tests it. If the startup scrape fails at the next one, the fix is wrong.
       - C17 (`3e9b8da`), option A. The HTML email escapes every listing value. Latent:
         the server has never run email (`EMAIL_*` empty, no email lines in any log).
         Ordinary values render as before (a test pins it).
