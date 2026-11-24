@@ -9,7 +9,6 @@ command table mirrors it.
 
 import logging
 import os
-import re
 import threading
 import time
 from pathlib import Path
@@ -17,18 +16,13 @@ from pathlib import Path
 import requests
 import yaml
 
+# One redaction for every log line that may carry a credential (review C8).
+from funda_bot.notifier import _redact
+
 logger = logging.getLogger(__name__)
 
-# Telegram bot tokens appear in api.telegram.org URLs, which surface inside
-# requests' exception messages. Scrub them before anything reaches the logs.
-_TOKEN_RE = re.compile(r'bot\d+:[A-Za-z0-9_-]+')
-
-
-def _redact(text) -> str:
-    """Remove Telegram bot tokens from a string before logging."""
-    return _TOKEN_RE.sub('bot<redacted>', str(text))
-
-
+# The live config: main.load_config reads it, _save_config writes it. Both use
+# this one path, so they can't drift apart (review C8).
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
 _CONFIG_LOCK = threading.Lock()
 

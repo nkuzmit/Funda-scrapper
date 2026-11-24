@@ -18,7 +18,7 @@ from funda_bot.scraper import ScrapeError, get_new_listings, mark_seen
 from funda_bot.notifier import build_notifiers
 from funda_bot.scheduler import schedule_scrapes
 from funda_bot.filters import matches_filters
-from funda_bot.commands import poll_commands, _send, HELP_TEXT, _CONFIG_LOCK
+from funda_bot.commands import poll_commands, _send, HELP_TEXT, _CONFIG_LOCK, _CONFIG_PATH
 
 load_dotenv()
 
@@ -40,7 +40,6 @@ logging.basicConfig(
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
 
 
-_CONFIG_PATH = Path(__file__).resolve().parent / 'config.yaml'
 _CONFIG_EXAMPLE_PATH = Path(__file__).resolve().parent / 'config.example.yaml'
 
 
