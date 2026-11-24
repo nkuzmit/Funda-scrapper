@@ -310,16 +310,23 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         `_redact` (commands imports notifier's). A test pins that load and save use the
         same file. The owner chose option A: no renames, and the two Telegram senders
         stay separate because they do different jobs. No behaviour change.
+      - D13, D14. The ethos file had carried a git cheat-sheet since the MVP (03-09).
+        From 06-25 to 08-15 it contradicted CLAUDE.md ("push origin main" vs. "never
+        commit to main"). The owner confirmed that no tool reads it as instructions
+        (no Copilot) and doesn't use the lines, so it now holds only the ethos.
+        The branch model was stated as `feat/*`|`fix/*`, but the merges into dev were
+        docs 32, fix 21, feat 4, deps 1, test 1. CONTRIBUTING now lists the kinds, and
+        CLAUDE.md says `<kind>/<topic>` and points there. The setup-wizard reasons are
+        left in both CLAUDE.md and Sprint 3: they're identical, and the branch is parked.
+      - C19 addendum: the local `fix/h2-config-split` was deleted. It was an unpushed
+        draft of H2 (`257740d`), replaced by `0b6edeb`, which is in dev.
     - **Still open, need a design choice:**
-      - D13: the same fact in several docs (branch workflow, setup-wizard warning;
-        the ethos file's git cheat-sheet duplicates CONTRIBUTING).
       - C9 / D12: lock coverage.
       - C10: unenforced input limits.
       - C11: `/run` and a scheduled run can overlap.
       - C14: repetitive add/remove handlers.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
-      - D14: `docs/*` branches aren't in the stated branch model.
 
 ---
 
