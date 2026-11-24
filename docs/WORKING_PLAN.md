@@ -8,6 +8,12 @@ Last updated: 2026-11-24
 
 ## Status snapshot
 
+One entry per deploy, in date order:
+``**Deployed (<date> <time>, `<hash>`):** <what, in production terms>, see <item>.``
+The live evidence and the test count go in the item, not here. A check still waiting on runtime stays visible here as `**Not yet confirmed
+live:** <what>` (its falsifier is in the item). A deploy with no item keeps its evidence
+in the entry. Entries up to `7f422d7` predate this format and are left as written.
+
 - **Deployed (2026-06-25):** Sprint 1 — photo fix, token redaction, no-areas guard,
   M1 input validation, M2 /setlabel normalisation, M3 thread-safe config.
 - **Deployed (2026-06-25):** H2 config split — `config.yaml` untracked,
