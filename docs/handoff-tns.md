@@ -1,6 +1,6 @@
 # Handoff — 2026-11-24
 
-Branch: `dev`, 19 commits ahead of `origin/dev` (not pushed; the owner asked to push at
+Branch: `dev`, ahead of `origin/dev` (not pushed; the owner asked to push at
 the end of the decision round) · deployed: `main` @ `7aa804c` (verified on the server
 2026-11-24: `funda-bot` active, 0 ERROR lines since the deploy).
 Last commit: this handoff and WORKING_PLAN's date.
