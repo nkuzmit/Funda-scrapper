@@ -243,6 +243,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setdate 3")
             return
+        # Below 1 can't mean anything useful (C10 follow-up): 0 switches the date
+        # filter off (the URL builder and matches_filters skip a falsy value), and
+        # a negative value makes matches_filters reject every dated listing, so
+        # the bot said "All caught up" forever.
+        if days < 1:
+            _send(bot_token, chat_id, "Not changed: publication days must be 1 or more.")
+            return
         with _CONFIG_LOCK:
             filters['publication_days'] = days
             _save_config(config)
