@@ -61,9 +61,10 @@ def load_config():
 
 class RunResult(NamedTuple):
     """Outcome of one scrape_and_notify run."""
-    delivered: int            # listings delivered to at least one channel
-    failed: int               # listings every channel failed on (retried next run)
-    error: str | None = None  # why the run failed; None if it completed
+    delivered: int              # listings delivered to at least one channel
+    failed: int                 # listings every channel failed on (retried next run)
+    error: str | None = None    # why the run failed; None if it completed
+    skipped: str | None = None  # why no scrape ran; None if one did
 
 
 # Alert after this many failed runs in a row. A single failure is retried
@@ -96,7 +97,8 @@ def _track_health(error: str | None) -> str | None:
 def scrape_and_notify(config: dict, notifiers: list, alert=None) -> RunResult:
     """Scrape for new listings and dispatch to all active notification channels.
 
-    A failed run is reported in RunResult.error, never as "nothing new".
+    A failed run is reported in RunResult.error and a skipped one in
+    RunResult.skipped, never as "nothing new".
     After _ALERT_AFTER failed runs in a row, *alert* (a callable taking the
     message text) is called once, and again when a run next succeeds.
     """
@@ -108,7 +110,8 @@ def scrape_and_notify(config: dict, notifiers: list, alert=None) -> RunResult:
             filters = copy.deepcopy(config['filters'])
         if not filters.get('areas'):
             logger.info("No areas configured — skipping scrape until setup is complete.")
-            return RunResult(0, 0)  # a skip: neither a failure nor a success
+            # Neither a failure nor a success, so the health counter is untouched.
+            return RunResult(0, 0, skipped='no areas configured')
         listings = get_new_listings(filters)
         logger.info(f"Found {len(listings)} new listings")
 

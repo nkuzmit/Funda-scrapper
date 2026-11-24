@@ -222,4 +222,4 @@ routine deploys and the dev workflow are in [CONTRIBUTING.md](CONTRIBUTING.md).
   alert above). A change that broke the listings *and* the match count at once would still
   look like a quiet market, so a quiet bot is strong but not perfect evidence. See the smoke
   test in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the log lines to check.
-- On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete.
+- On startup the bot runs one immediate scrape before the first scheduled run — useful after a restart so no listings are missed. This startup scrape (and scheduled runs) are skipped while no areas are configured, so a fresh/unconfigured bot won't flood you with nationwide results before setup is complete. A `/run` in that state replies `Not run: no areas configured`.

@@ -165,12 +165,18 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
 
     elif cmd == '/run':
         _send(bot_token, chat_id, "Running scrape...")
-        result = scrape_fn()  # main.RunResult(delivered, failed, error)
-        # Never report a failed scrape or delivery as "nothing new" (2026-11-20).
+        result = scrape_fn()  # main.RunResult(delivered, failed, error, skipped)
+        # Never report a failed scrape or delivery, or a skipped run, as
+        # "nothing new" (2026-11-20; the skip since 2026-11-24).
         if result.error:
             _send(
                 bot_token, chat_id,
                 f"⚠️ Run failed: {result.error}\n\nSee main.log — will retry next run.",
+            )
+        elif result.skipped:
+            _send(
+                bot_token, chat_id,
+                f"Not run: {result.skipped}. Add an area first, e.g. /addarea utrecht/oudwijk",
             )
         elif result.failed:
             _send(
@@ -242,6 +248,13 @@ def handle_command(text: str, config: dict, bot_token: str, chat_id: str, scrape
             days = int(args[0])
         except ValueError:
             _send(bot_token, chat_id, "Usage: /setdate 3")
+            return
+        # Below 1 can't mean anything useful (C10 follow-up): 0 switches the date
+        # filter off (the URL builder and matches_filters skip a falsy value), and
+        # a negative value makes matches_filters reject every dated listing, so
+        # the bot said "All caught up" forever.
+        if days < 1:
+            _send(bot_token, chat_id, "Not changed: publication days must be 1 or more.")
             return
         with _CONFIG_LOCK:
             filters['publication_days'] = days

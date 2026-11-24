@@ -112,6 +112,18 @@ Last updated: 2026-11-24
     the restart.
 
   **Not yet confirmed live:** C4 and `no url`, as above.
+- **Deployed (2026-11-24 14:44, `0d943df`):** C10 (`320c2c1`). `/setprice`, `/setfloor`
+  and `/setlabel` refuse inputs that would match no listing (see Review follow-ups,
+  item 12). 130/130 tests. `pip freeze` still equals the pins. **Confirmed live**
+  2026-11-24:
+  - Startup scrape `0 listings (total available: 0)`, `Scheduler started: 14 runs a
+    day`. The search URL is identical to the runs before the deploy.
+  - Owner `/setprice 900000 500000` answered `Not changed: each bound must be above 0
+    …`, and `/setlabel a b cc` answered `Not changed: unknown energy label(s) CC. Valid:
+    …`. Both were received 1 s after sending. `/filters` still shows €550.000–€720.000
+    and A+++++ to C. `config.yaml` was not rewritten (mtime still 2026-11-23 13:55,
+    no `.tmp`).
+  - 0 WARNING/ERROR lines since the restart.
 
 > Live filter values are **not** recorded here — `config.yaml` on the server is their
 > only home (it's rewritten by the Telegram commands, so any copy here goes stale the
@@ -148,7 +160,9 @@ structure. 6 tests cover happy path, photo filtering, bot-challenge, no-payload,
 None energy_label, and empty listing list.
 
 ### M5 — Pin dependencies · DONE
-`requirements.txt` pins all 5 direct deps to known-good versions.
+`requirements.txt` pins all 5 direct deps to known-good versions. Superseded: since
+2026-11-23 the pins equal the server's packages, transitive ones included (see Known
+risks).
 
 ### L2 — energy_label None · DONE
 `notifier.py` uses `or 'N/A'` in both plain-text and HTML formatters.
@@ -250,7 +264,7 @@ is revoked.
 
 ---
 
-## Review follow-ups · IN PROGRESS · 2026-11-23
+## Review follow-ups · DONE ON `dev`, DEPLOY PENDING · 2026-11-24
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
@@ -349,7 +363,8 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       - C14: **won't do** (owner, 2026-11-24). The six add/remove blocks stay explicit:
         they differ in key, reply wording and lowercasing, and a helper would need a
         parameter for each.
-    - **Done 2026-11-24, not deployed:**
+    - **Done 2026-11-24, deployed in `0d943df`** (confirmed live, see the status
+      snapshot):
       - C10 (`320c2c1`), option A (owner's choice; B, A plus `/setdate` ≤ 10 and a
         slug-shape check, and C, docs only, were rejected). Inputs that made every
         listing fail `matches_filters`, so the bot said "All caught up" forever, are now
@@ -368,10 +383,39 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         checked). 130/130 tests; the 7 rejection tests fail on the old code. Falsifier:
         Funda shows a listing whose label isn't one of the 12, and the owner wants to
         filter on it.
-    - **Still open, need a design choice:**
-      - C11: `/run` and a scheduled run can overlap.
-      - C16: `network-online.target`.
-      - C17: HTML email escaping.
+    - **Won't do (owner, 2026-11-24): C11**, `/run` and a scheduled run can overlap. A
+      corner case. Overlapping runs would both read the seen-table before either marks
+      a listing, so a new listing could arrive twice. SQLite writes are safe (one
+      connection per call, `INSERT OR IGNORE`). It never happened: in the server logs,
+      3,584 runs (2026-03-19 → 2026-11-24), no scrape started while another was
+      running. The closest, 2026-11-15, was sequential: the scheduled run ended at
+      19:00:02.8 and a `/run` started at 19:00:44. Runs take 1.2 s at the median and
+      about 20 s at most, so the window is seconds after each scheduled run. Worst case:
+      one duplicate message.
+    - **Done 2026-11-24 on `dev`, not deployed** (owner's choices from the 2026-11-24
+      review of the plan; 136/136 tests):
+      - C16 (`59b2c36`, docs `3f59604`), option A. The unit waits for
+        `network-online.target` (`Wants=` + `After=`) instead of `network.target`.
+        Evidence: `systemd-networkd-wait-online` is enabled on the server, so the target
+        waits for real. The server has booted once since install (2026-03-23), and that
+        startup scrape succeeded 6 s after boot, so the race was never seen. Starting too
+        early would fail the startup scrape and the drain of old Telegram commands, so
+        commands sent while the server was down would replay. **Deploy needs the manual
+        unit install** in [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier:
+        only a reboot tests it; at the next one, the startup scrape should succeed.
+      - C17 (`3e9b8da`), option A. The HTML email escapes every listing value. Latent:
+        the server has never run email (`EMAIL_*` empty, no email lines in any log).
+        Ordinary values render as before (a test pins it).
+      - C10 follow-up (`2ca4443`). `/setdate` refuses values below 1. A negative value
+        made every dated listing fail `matches_filters` (verified locally), so the bot
+        said "All caught up" forever; 0 turned the date filter off. Found in the
+        2026-11-24 review: the C10 options covered only the upper limit. Values above 10
+        stay accepted.
+      - The no-areas skip (`f64ed7c`, README `2fd5394`), from Open issues. `RunResult`
+        gains a typed `skipped` field, so a skip is no longer the same value as "nothing
+        new" (CLAUDE.md's no-sentinel rule). `/run` replies `Not run: no areas
+        configured. …` instead of `All caught up`. The health counter still ignores a
+        skip.
 
 ---
 
@@ -435,10 +479,6 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   `main.py`, prefer IPv4 in the server's `/etc/gai.conf`, or a shorter connect timeout.
   Falsifier: after forcing IPv4, slow `received` lines continue or the ~28/day
   `Polling error (network)` warnings don't drop.
-
-- **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
-  not run. Can't happen on the server today (areas are set); cut from the
-  scrape-failure branch as a separate concern.
 
 ---
 

@@ -1,6 +1,9 @@
 [Unit]
 Description=Funda Scraper Bot
-After=network.target
+# Start once the network is up, not merely once networking has started: at boot
+# the startup scrape and the drain of old Telegram commands need it (review C16).
+Wants=network-online.target
+After=network-online.target
 
 # Paths must match the live server. This VPS has no `ubuntu` user — the bot runs as
 # root from /home/Funda-scrapper. Confirm before installing:

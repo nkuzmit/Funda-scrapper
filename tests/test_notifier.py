@@ -210,6 +210,41 @@ def test_telegram_http_error_logs_response_body_and_photos(monkeypatch, caplog):
 
 
 # ---------------------------------------------------------------------------
+# EmailNotifier — HTML body (C17)
+# ---------------------------------------------------------------------------
+
+def test_email_html_escapes_listing_values():
+    """Funda's strings go into HTML: markup characters must not break it (C17)."""
+    from funda_bot.notifier import _format_html
+    listing = {
+        **LISTING,
+        'title': 'Kerk & Zn <b>1</b>',
+        'location': '3500 AA <Utrecht>',
+        'url': 'https://funda.nl/detail/1/"onmouseover="x',
+        'photos': ['https://example.com/a.jpg?w=1&h=2"x'],
+    }
+    body = _format_html(listing)
+    assert 'Kerk &amp; Zn &lt;b&gt;1&lt;/b&gt;' in body
+    assert '3500 AA &lt;Utrecht&gt;' in body
+    assert 'href="https://funda.nl/detail/1/&quot;onmouseover=&quot;x"' in body
+    assert 'src="https://example.com/a.jpg?w=1&amp;h=2&quot;x"' in body
+    assert '<b>1</b>' not in body and '"onmouseover' not in body
+
+
+def test_email_html_plain_listing_is_unchanged():
+    """Ordinary values render exactly as before the escaping."""
+    from funda_bot.notifier import _format_html
+    body = _format_html({**LISTING, 'photos': ['https://example.com/a.jpg'], 'energy_label': None})
+    assert '<h2>🏠 Teststraat 1</h2>' in body
+    assert '<td>€ 450.000</td>' in body
+    assert '<td>90 m²</td>' in body
+    assert '<td>3 bedrooms / 4 total</td>' in body
+    assert '<td>N/A</td>' in body
+    assert '<a href="https://funda.nl/detail/1/">' in body
+    assert '<img src="https://example.com/a.jpg" ' in body
+
+
+# ---------------------------------------------------------------------------
 # WhatsAppNotifier
 # ---------------------------------------------------------------------------
 
