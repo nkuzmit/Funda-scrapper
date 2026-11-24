@@ -160,7 +160,9 @@ structure. 6 tests cover happy path, photo filtering, bot-challenge, no-payload,
 None energy_label, and empty listing list.
 
 ### M5 — Pin dependencies · DONE
-`requirements.txt` pins all 5 direct deps to known-good versions.
+`requirements.txt` pins all 5 direct deps to known-good versions. Superseded: since
+2026-11-23 the pins equal the server's packages, transitive ones included (see Known
+risks).
 
 ### L2 — energy_label None · DONE
 `notifier.py` uses `or 'N/A'` in both plain-text and HTML formatters.
@@ -262,7 +264,7 @@ is revoked.
 
 ---
 
-## Review follow-ups · IN PROGRESS · 2026-11-23
+## Review follow-ups · DONE ON `dev`, DEPLOY PENDING · 2026-11-24
 
 From the 2026-11-23 compliance review, measured against the AK-47 ethos (report, private
 to the owner: https://claude.ai/artifact/4HTNMUmwfhGUPH4eyDfP4h; IDs below are its
@@ -390,9 +392,30 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
       19:00:02.8 and a `/run` started at 19:00:44. Runs take 1.2 s at the median and
       about 20 s at most, so the window is seconds after each scheduled run. Worst case:
       one duplicate message.
-    - **Still open, need a design choice:**
-      - C16: `network-online.target`.
-      - C17: HTML email escaping.
+    - **Done 2026-11-24 on `dev`, not deployed** (owner's choices from the 2026-11-24
+      review of the plan; 136/136 tests):
+      - C16 (`59b2c36`, docs `3f59604`), option A. The unit waits for
+        `network-online.target` (`Wants=` + `After=`) instead of `network.target`.
+        Evidence: `systemd-networkd-wait-online` is enabled on the server, so the target
+        waits for real. The server has booted once since install (2026-03-23), and that
+        startup scrape succeeded 6 s after boot, so the race was never seen. Starting too
+        early would fail the startup scrape and the drain of old Telegram commands, so
+        commands sent while the server was down would replay. **Deploy needs the manual
+        unit install** in [DEPLOYMENT.md](DEPLOYMENT.md) "Server reference". Falsifier:
+        only a reboot tests it; at the next one, the startup scrape should succeed.
+      - C17 (`3e9b8da`), option A. The HTML email escapes every listing value. Latent:
+        the server has never run email (`EMAIL_*` empty, no email lines in any log).
+        Ordinary values render as before (a test pins it).
+      - C10 follow-up (`2ca4443`). `/setdate` refuses values below 1. A negative value
+        made every dated listing fail `matches_filters` (verified locally), so the bot
+        said "All caught up" forever; 0 turned the date filter off. Found in the
+        2026-11-24 review: the C10 options covered only the upper limit. Values above 10
+        stay accepted.
+      - The no-areas skip (`f64ed7c`, README `2fd5394`), from Open issues. `RunResult`
+        gains a typed `skipped` field, so a skip is no longer the same value as "nothing
+        new" (CLAUDE.md's no-sentinel rule). `/run` replies `Not run: no areas
+        configured. …` instead of `All caught up`. The health counter still ignores a
+        skip.
 
 ---
 
@@ -456,10 +479,6 @@ redesigning the config layer. Treat it as a new sprint if it's ever prioritised.
   `main.py`, prefer IPv4 in the server's `/etc/gai.conf`, or a shorter connect timeout.
   Falsifier: after forcing IPv4, slow `received` lines continue or the ~28/day
   `Polling error (network)` warnings don't drop.
-
-- **`/run` with no areas configured replies "All caught up"** — the scrape is skipped,
-  not run. Can't happen on the server today (areas are set); cut from the
-  scrape-failure branch as a separate concern.
 
 ---
 
