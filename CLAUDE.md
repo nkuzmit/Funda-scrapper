@@ -27,7 +27,8 @@ venv/Scripts/python main.py          # run the bot locally
 - **venv Python only** — the venv is 3.12, like production; system Python (3.14.x)
   lacks the deps.
 - **Test before commit**; `pytest` green is the gate.
-- **Branch model is 3-tier**: `feat/*`|`fix/*` → `dev` → `main`. `main` is the deploy
+- **Branch model is 3-tier**: a short-lived `<kind>/<topic>` branch → `dev` → `main`
+  (the kinds are listed in CONTRIBUTING). `main` is the deploy
   trunk (**never commit directly**); `dev` is integration (**never accumulate
   speculative work there either**); cut a branch for anything multi-file or uncertain.
   Full workflow in [CONTRIBUTING.md](CONTRIBUTING.md).
