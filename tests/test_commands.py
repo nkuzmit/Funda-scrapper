@@ -244,11 +244,11 @@ def main_mod(monkeypatch):
     return main
 
 
-def _run_result(delivered=0, failed=0, error=None):
+def _run_result(delivered=0, failed=0, error=None, skipped=None):
     import sys
     sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
     from main import RunResult
-    return RunResult(delivered, failed, error)
+    return RunResult(delivered, failed, error, skipped)
 
 
 def test_run_reports_failed_deliveries(ctx):
@@ -266,6 +266,16 @@ def test_run_reports_failed_scrape(ctx):
     handle_command('/run', config, 'tok', '123', MagicMock(return_value=result))
     last = send.call_args_list[-1][0][2]
     assert 'Run failed' in last and 'bot-challenge' in last
+    assert 'All caught up' not in last
+
+
+def test_run_reports_a_skipped_run(ctx):
+    """A run skipped for lack of areas must not be reported as 'All caught up'."""
+    config, send = ctx
+    result = _run_result(skipped='no areas configured')
+    handle_command('/run', config, 'tok', '123', MagicMock(return_value=result))
+    last = send.call_args_list[-1][0][2]
+    assert last.startswith('Not run: no areas configured.') and '/addarea' in last
     assert 'All caught up' not in last
 
 
@@ -294,7 +304,7 @@ def test_scrape_and_notify_counts_failed_deliveries(main_mod, monkeypatch):
     notifier.notify.side_effect = lambda listing: listing['title'] == 'A'
     config = {'filters': {'areas': ['utrecht/oudwijk']}}
 
-    assert main_mod.scrape_and_notify(config, [notifier]) == (1, 1, None)
+    assert main_mod.scrape_and_notify(config, [notifier]) == (1, 1, None, None)
     assert seen == ['https://funda.nl/a']
 
 
@@ -316,7 +326,7 @@ def _failing(main_mod, monkeypatch):
 def test_scrape_failure_is_reported_not_raised(main_mod, monkeypatch):
     _failing(main_mod, monkeypatch)
     result = main_mod.scrape_and_notify(_CONFIG, [])
-    assert result == (0, 0, 'Funda returned a bot-challenge page')
+    assert result == (0, 0, 'Funda returned a bot-challenge page', None)
 
 
 def test_unexpected_error_is_a_failure_and_keeps_delivered_count(main_mod, monkeypatch):
@@ -367,8 +377,9 @@ def test_no_areas_skip_does_not_touch_the_counter(main_mod, monkeypatch):
     alert = MagicMock()
     _failing(main_mod, monkeypatch)
     main_mod.scrape_and_notify(_CONFIG, [], alert)
-    main_mod.scrape_and_notify({'filters': {'areas': []}}, [], alert)
+    result = main_mod.scrape_and_notify({'filters': {'areas': []}}, [], alert)
     assert main_mod._failed_runs == 1 and alert.call_count == 0
+    assert result == (0, 0, None, 'no areas configured')   # a skip, not "nothing new"
 
 
 def test_alert_without_telegram_is_only_logged(main_mod, monkeypatch):
