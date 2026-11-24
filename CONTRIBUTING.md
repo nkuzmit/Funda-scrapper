@@ -58,5 +58,8 @@ git pull origin main && venv/bin/pip install -q -r requirements.txt && systemctl
 already does. Skipping it let the server drift: it ran APScheduler 3.11.2 for 8 months
 while the pins said 3.10.4 (found 2026-11-23).
 
+The command doesn't install `funda-bot.service`: a change to the unit needs the step
+under "Server reference" in DEPLOYMENT.md.
+
 Full install, the one-time config migration, and the post-deploy smoke test are in
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Plan and backlog: [docs/WORKING_PLAN.md](docs/WORKING_PLAN.md).
