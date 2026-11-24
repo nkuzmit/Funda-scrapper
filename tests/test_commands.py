@@ -155,8 +155,56 @@ def test_setfloor_valid_input_updates_config(ctx):
 def test_setlabel_normalises_to_uppercase(ctx):
     config, send = ctx
     with patch('funda_bot.commands._save_config'):
-        handle_command('/setlabel a b+ c', config, 'tok', '123', MagicMock())
-    assert config['filters']['energy_labels'] == ['A', 'B+', 'C']
+        handle_command('/setlabel a a+ c', config, 'tok', '123', MagicMock())
+    assert config['filters']['energy_labels'] == ['A', 'A+', 'C']
+
+
+# ---------------------------------------------------------------------------
+# C10 — inputs that would make the bot go quiet are rejected
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize('cmd, keys', [
+    ('/setprice 900000 500000', ('price_min', 'price_max')),     # min > max
+    ('/setprice null -5', ('price_min', 'price_max')),           # negative max
+    ('/setprice 0 900000', ('price_min', 'price_max')),          # 0: use null
+    ('/setfloor 130 90', ('floor_area_min', 'floor_area_max')),  # min > max
+    ('/setfloor 90 0', ('floor_area_min', 'floor_area_max')),    # max 0: nothing fits
+    ('/setfloor -10 null', ('floor_area_min', 'floor_area_max')),
+])
+def test_range_that_cannot_match_is_rejected(ctx, cmd, keys):
+    config, send = ctx
+    before = {k: config['filters'][k] for k in keys}
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command(cmd, config, 'tok', '123', MagicMock())
+    save.assert_not_called()
+    assert {k: config['filters'][k] for k in keys} == before
+    assert send.call_args[0][2].startswith('Not changed:')
+
+
+@pytest.mark.parametrize('cmd, keys, expected', [
+    ('/setprice 600000 600000', ('price_min', 'price_max'), (600000, 600000)),
+    ('/setprice null null', ('price_min', 'price_max'), (None, None)),
+    ('/setfloor 90 null', ('floor_area_min', 'floor_area_max'), (90, None)),
+])
+def test_range_edge_cases_are_accepted(ctx, cmd, keys, expected):
+    config, send = ctx
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command(cmd, config, 'tok', '123', MagicMock())
+    save.assert_called_once()
+    assert tuple(config['filters'][k] for k in keys) == expected
+
+
+def test_setlabel_unknown_label_is_rejected(ctx):
+    """A typo (CC for C) would silently drop every C listing."""
+    config, send = ctx
+    config['filters']['energy_labels'] = ['A', 'B']
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command('/setlabel a b cc', config, 'tok', '123', MagicMock())
+    save.assert_not_called()
+    assert config['filters']['energy_labels'] == ['A', 'B']
+    reply = send.call_args[0][2]
+    assert reply.startswith('Not changed: unknown energy label(s) CC.')
+    assert 'A+++++' in reply and ' G' in reply
 
 
 # ---------------------------------------------------------------------------
