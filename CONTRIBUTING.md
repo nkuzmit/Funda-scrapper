@@ -36,9 +36,12 @@ docs/whatever ────────┘        (deploy gate)
 - **`dev` is the integration branch.** Finished, tested work accumulates here. Don't
   accumulate speculative or half-finished work on it either — that's what the
   per-change branches are for.
-- **One branch per change**, cut from `dev` (e.g. `fix/scraper-retry`).
-  Implement + test there, then merge to `dev` once it works. As soon as a task touches
-  more than one file or carries any uncertainty about the approach, branch first.
+- **A branch for any change that touches more than one file or carries any
+  uncertainty about the approach**, cut from `dev` (e.g. `fix/scraper-retry`) before
+  the first edit. Implement + test there, then merge to `dev` once it works.
+- **A single-file docs change goes straight to `dev`** when it records something
+  already settled: a deploy record, a status line, the session handoff. One commit, no
+  branch, no merge.
 - **Merge `dev` → `main` only when you intend to deploy.** That merge is the gate.
 - **Test locally before committing** — `pytest` green is the gate; for Telegram or
   scraper changes, also run the bot or a live check.
