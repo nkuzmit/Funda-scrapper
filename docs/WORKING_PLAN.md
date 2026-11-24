@@ -381,8 +381,16 @@ finding numbers). Worked one action at a time. Order agreed with the owner 2026-
         checked). 130/130 tests; the 7 rejection tests fail on the old code. Falsifier:
         Funda shows a listing whose label isn't one of the 12, and the owner wants to
         filter on it.
+    - **Won't do (owner, 2026-11-24): C11**, `/run` and a scheduled run can overlap. A
+      corner case. Overlapping runs would both read the seen-table before either marks
+      a listing, so a new listing could arrive twice. SQLite writes are safe (one
+      connection per call, `INSERT OR IGNORE`). It never happened: in the server logs,
+      3,584 runs (2026-03-19 → 2026-11-24), no scrape started while another was
+      running. The closest, 2026-11-15, was sequential: the scheduled run ended at
+      19:00:02.8 and a `/run` started at 19:00:44. Runs take 1.2 s at the median and
+      about 20 s at most, so the window is seconds after each scheduled run. Worst case:
+      one duplicate message.
     - **Still open, need a design choice:**
-      - C11: `/run` and a scheduled run can overlap.
       - C16: `network-online.target`.
       - C17: HTML email escaping.
 
