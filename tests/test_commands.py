@@ -122,6 +122,25 @@ def test_setdate_valid_input_updates_config(ctx):
         save.assert_called_once()
 
 
+@pytest.mark.parametrize('days', ['0', '-1'])
+def test_setdate_below_one_is_rejected(ctx, days):
+    """0 turns the date filter off; a negative value matches no dated listing."""
+    config, send = ctx
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command(f'/setdate {days}', config, 'tok', '123', MagicMock())
+    save.assert_not_called()
+    assert config['filters']['publication_days'] == 3
+    assert send.call_args[0][2] == 'Not changed: publication days must be 1 or more.'
+
+
+def test_setdate_one_is_accepted(ctx):
+    config, send = ctx
+    with patch('funda_bot.commands._save_config') as save:
+        handle_command('/setdate 1', config, 'tok', '123', MagicMock())
+    save.assert_called_once()
+    assert config['filters']['publication_days'] == 1
+
+
 # ---------------------------------------------------------------------------
 # /setfloor
 # ---------------------------------------------------------------------------
