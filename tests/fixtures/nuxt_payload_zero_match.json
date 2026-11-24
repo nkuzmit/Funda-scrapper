@@ -1,0 +1,586 @@
+[
+ [
+  "ShallowReactive",
+  1
+ ],
+ {
+  "data": 2,
+  "state": 6,
+  "once": 25,
+  "_errors": 26,
+  "serverRendered": 4,
+  "path": 28,
+  "pinia": 29
+ },
+ [
+  "ShallowReactive",
+  3
+ ],
+ {
+  "fetchListings": 4,
+  "$MHKgNwRse9": 5
+ },
+ true,
+ 0,
+ [
+  "Reactive",
+  7
+ ],
+ {
+  "$si18n:cached-locale-configs": 8,
+  "$si18n:resolved-locale": 13,
+  "$sfunda.shell.state.auth.token-set": -1,
+  "$spage-view-id": 14,
+  "$sarea-map-viewport": 15,
+  "$sfunda.shell.state.auth.user": -1,
+  "$shasConsumedSaveSearchQuery": 16,
+  "$ssite-config": 17
+ },
+ {
+  "nl": 9,
+  "en": 11
+ },
+ {
+  "fallbacks": 10,
+  "cacheable": 4
+ },
+ [],
+ {
+  "fallbacks": 12,
+  "cacheable": 4
+ },
+ [],
+ "",
+ "efc35215-70a6-4068-9f10-d276a37cb6c2",
+ null,
+ false,
+ {
+  "_priority": 18,
+  "env": 22,
+  "name": 23,
+  "url": 24
+ },
+ {
+  "name": 19,
+  "env": 20,
+  "url": 21
+ },
+ -10,
+ -15,
+ -4,
+ "production",
+ "listing-search-wonen-web",
+ "https://www.funda.nl/",
+ [
+  "Set"
+ ],
+ [
+  "ShallowReactive",
+  27
+ ],
+ {
+  "fetchListings": -1,
+  "$MHKgNwRse9": -1,
+  "$f21de03btxhioh": -1,
+  "$f1i57zyhwu5n6i": -1
+ },
+ "/zoeken/koop?selected_area=utrecht/oudwijk&price=550000-560000&publication_date=1&sort=publish_date_sort_order_desc",
+ [
+  "Reactive",
+  30
+ ],
+ {
+  "app": 31,
+  "search": 35
+ },
+ {
+  "isNvmOpenHouseDayEnabled": 32,
+  "isRelevancyRankingEnabled": 34
+ },
+ [
+  "EmptyRef",
+  33
+ ],
+ "false",
+ [
+  "Ref",
+  4
+ ],
+ {
+  "criteria": 36,
+  "isRestoringHistory": 111,
+  "listings": 112,
+  "totalListingsCount": 114,
+  "aggregations": 115,
+  "mapAggregations": 142,
+  "filterToFocusInPanel": 145,
+  "isModalOpen": 147,
+  "modalTriggerElement": 148
+ },
+ [
+  "Ref",
+  37
+ ],
+ [
+  "Reactive",
+  38
+ ],
+ {
+  "selected_area": 39,
+  "agent_office_id": -1,
+  "collapse_projects": 16,
+  "radius_search": 60,
+  "offering_type": 61,
+  "price": 62,
+  "nvm_open_house_day": 65,
+  "project_phase": 66,
+  "object_type": 67,
+  "construction_type": 68,
+  "object_type_house_orientation": 69,
+  "object_type_house": 70,
+  "object_type_apartment_orientation": 71,
+  "object_type_apartment": 72,
+  "object_type_parking": 73,
+  "object_type_parking_capacity": 74,
+  "publication_date": 75,
+  "availability": 76,
+  "floor_area": 79,
+  "plot_area": 80,
+  "rooms": 81,
+  "bedrooms": 82,
+  "bathrooms": 83,
+  "free_text_search": 84,
+  "page": 85,
+  "rental_agreement": 86,
+  "renting_condition": 87,
+  "energy_label": 88,
+  "exterior_space_type": 89,
+  "exterior_space_garden_orientation": 90,
+  "exterior_space_garden_size": 91,
+  "zoning": 92,
+  "construction_period": 94,
+  "surrounding": 95,
+  "parking_facility": 96,
+  "garage_type": 97,
+  "garage_capacity": 98,
+  "accessibility": 99,
+  "amenities": 100,
+  "type": 101,
+  "sort": 103,
+  "open_house": 108,
+  "custom_area": 109,
+  "bounding_box": 110
+ },
+ [
+  40
+ ],
+ {
+  "id": 41,
+  "geoIdentifier": 42,
+  "name": 43,
+  "areaType": 44,
+  "centroid": 45,
+  "parentAreas": 48,
+  "parent": 59
+ },
+ "utrecht/oudwijk-0",
+ "utrecht/oudwijk",
+ "Oudwijk",
+ "neighborhood",
+ {
+  "lat": 46,
+  "lng": 47
+ },
+ 52.088612259868164,
+ 5.135732136495584,
+ [
+  49,
+  53,
+  56
+ ],
+ {
+  "geoIdentifier": 50,
+  "areaType": 51,
+  "name": 52
+ },
+ "utrecht",
+ "city",
+ "Utrecht",
+ {
+  "geoIdentifier": 54,
+  "areaType": 55,
+  "name": 52
+ },
+ "gemeente-utrecht",
+ "municipality",
+ {
+  "geoIdentifier": 57,
+  "areaType": 58,
+  "name": 52
+ },
+ "provincie-utrecht",
+ "province",
+ {
+  "geoIdentifier": 50,
+  "areaType": 51,
+  "name": 52
+ },
+ "0",
+ "buy",
+ {
+  "min": 63,
+  "max": 64
+ },
+ 550000,
+ 560000,
+ [],
+ [],
+ [],
+ [],
+ [],
+ [],
+ [],
+ [],
+ [],
+ [],
+ "1",
+ [
+  77,
+  78
+ ],
+ "available",
+ "negotiations",
+ {
+  "min": 5,
+  "max": 15
+ },
+ {
+  "min": 5,
+  "max": 15
+ },
+ {
+  "min": 5,
+  "max": 15
+ },
+ {
+  "min": 5,
+  "max": 15
+ },
+ {
+  "min": 5,
+  "max": 15
+ },
+ [],
+ 1,
+ [],
+ [],
+ [],
+ [],
+ [],
+ {
+  "min": 5,
+  "max": 15
+ },
+ [
+  93
+ ],
+ "residential",
+ [],
+ [],
+ [],
+ [],
+ {
+  "min": 5,
+  "max": 15
+ },
+ [],
+ [],
+ [
+  102
+ ],
+ "single",
+ {
+  "field": 104,
+  "order": 105,
+  "offering_type": 106,
+  "old_option": 107
+ },
+ "publish_date_sort_order",
+ "desc",
+ "both",
+ "date_down",
+ [],
+ [],
+ [],
+ [
+  "EmptyRef",
+  33
+ ],
+ [
+  "ShallowRef",
+  113
+ ],
+ [],
+ [
+  "EmptyRef",
+  60
+ ],
+ [
+  "Ref",
+  116
+ ],
+ [
+  "Reactive",
+  117
+ ],
+ {
+  "nvm_open_house_day": 118,
+  "object_type": 119,
+  "construction_type": 120,
+  "object_type_house_orientation": 121,
+  "object_type_house": 122,
+  "object_type_apartment_orientation": 123,
+  "object_type_apartment": 124,
+  "object_type_parking": 125,
+  "object_type_parking_capacity": 126,
+  "publication_date": 127,
+  "availability": 129,
+  "energy_label": 130,
+  "exterior_space_type": 131,
+  "exterior_space_garden_orientation": 132,
+  "zoning": 133,
+  "construction_period": 134,
+  "surrounding": 135,
+  "parking_facility": 136,
+  "garage_type": 137,
+  "accessibility": 138,
+  "amenities": 139,
+  "type": 140,
+  "open_house": 141
+ },
+ {
+  "true": 5
+ },
+ {
+  "apartment": 5,
+  "berth": 5,
+  "house": 5,
+  "land": 5,
+  "parking": 5,
+  "pitch": 5,
+  "storage": 5,
+  "storage_space": 5,
+  "substructure": 5
+ },
+ {
+  "newly_built": 5,
+  "resale": 5
+ },
+ {
+  "corner": 5,
+  "detached": 5,
+  "double": 5,
+  "end_of_terrace": 5,
+  "link_detached": 5,
+  "link_double": 5,
+  "semi_detached": 5,
+  "staggered": 5,
+  "terraced": 5
+ },
+ {
+  "bungalow": 5,
+  "canal_side": 5,
+  "caravan": 5,
+  "country_estate": 5,
+  "country_house": 5,
+  "former_farm": 5,
+  "house_boat": 5,
+  "mobile_home": 5,
+  "single_family": 5,
+  "town_house": 5,
+  "villa": 5
+ },
+ {
+  "basement": 5,
+  "corridor_flat": 5,
+  "duplex": 5,
+  "piano_nobile": 5,
+  "service_flat": 5,
+  "sheltered": 5
+ },
+ {
+  "double_ground_floor": 5,
+  "duplex": 5,
+  "flat_with_porch": 5,
+  "ground_floor": 5,
+  "house_with_porch": 5,
+  "maisonnette": 5,
+  "mezzanine": 5,
+  "penthouse": 5,
+  "student_room": 5,
+  "upper_floor": 5,
+  "with_external_access": 5
+ },
+ {
+  "garage": 5,
+  "integrated": 5,
+  "parking_space": 5,
+  "underground_car_park": 5
+ },
+ {
+  "0": 5,
+  "1": 5,
+  "2": 5,
+  "3": 5,
+  "4": 5,
+  "5": 5,
+  "6": 5,
+  "7": 5,
+  "9": 5,
+  "10": 5
+ },
+ {
+  "1": 5,
+  "3": 5,
+  "5": 5,
+  "10": 5,
+  "30": 5,
+  "no_preference": 128
+ },
+ 2,
+ {
+  "available": 5,
+  "negotiations": 5,
+  "unavailable": 5
+ },
+ {
+  "A": 5,
+  "A+": 5,
+  "A++": 5,
+  "A+++": 5,
+  "A++++": 5,
+  "B": 5,
+  "C": 5,
+  "D": 5,
+  "E": 5,
+  "F": 5,
+  "G": 5,
+  "unknown": 5
+ },
+ {
+  "balcony": 5,
+  "garden": 5,
+  "terrace": 5
+ },
+ {
+  "east": 5,
+  "north": 5,
+  "south": 5,
+  "west": 5
+ },
+ {
+  "recreational": 5,
+  "residential": 5
+ },
+ {
+  "after_2020": 5,
+  "before_1906": 5,
+  "from_1906_to_1930": 5,
+  "from_1931_to_1944": 5,
+  "from_1945_to_1959": 5,
+  "from_1960_to_1970": 5,
+  "from_1971_to_1980": 5,
+  "from_1981_to_1990": 5,
+  "from_1991_to_2000": 5,
+  "from_2001_to_2010": 5,
+  "from_2011_to_2020": 5
+ },
+ {
+  "at_edge_of_woods": 5,
+  "by_water": 5,
+  "in_business_park": 5,
+  "in_center": 5,
+  "in_green_area": 5,
+  "in_recreation_park": 5,
+  "in_residential_district": 5,
+  "on_busy_road": 5,
+  "on_navigable_waterway": 5,
+  "on_quiet_road": 5,
+  "open_position": 5,
+  "outside_built_up_area": 5,
+  "overlooking_park": 5,
+  "rural": 5,
+  "sea_view": 5,
+  "sheltered_position": 5,
+  "unobstructed_view": 5
+ },
+ {
+  "on_enclosed_property": 5,
+  "on_private_property": 5,
+  "paid_parking": 5,
+  "parking_garage": 5,
+  "parking_permits": 5,
+  "public_parking": 5
+ },
+ {
+  "all_garages": 5,
+  "basement": 5,
+  "built_in": 5,
+  "carport": 5,
+  "detached": 5,
+  "garage_and_carport": 5,
+  "garage_possible": 5,
+  "lean_to": 5,
+  "lock_up": 5,
+  "parking_space": 5,
+  "underground": 5
+ },
+ {
+  "accessible_for_the_disabled": 5,
+  "accessible_for_the_elderly": 5,
+  "adapted_home": 5,
+  "ground_floor": 5,
+  "lift": 5,
+  "single_storey": 5
+ },
+ {
+  "bathtub": 5,
+  "central_heating_boiler": 5,
+  "double_occupancy": 5,
+  "fireplace": 5,
+  "fixer_upper": 5,
+  "renewable_energy": 5,
+  "swimming_pool": 5
+ },
+ {
+  "group": 5,
+  "single": 5
+ },
+ {
+  "today": 5,
+  "all": 5,
+  "coming_weekend": 5
+ },
+ [
+  "Ref",
+  143
+ ],
+ [
+  "Reactive",
+  144
+ ],
+ [],
+ [
+  "EmptyRef",
+  146
+ ],
+ "null",
+ [
+  "EmptyRef",
+  33
+ ],
+ [
+  "EmptyRef",
+  146
+ ]
+]

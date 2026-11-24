@@ -5,7 +5,7 @@ import pytest
 import requests
 from funda_bot.scraper import (
     ScrapeError, load_seen, mark_seen, get_new_listings, scrape_funda,
-    _photo_url, _parse_nuxt_listings, _build_url,
+    _photo_url, _parse_nuxt_listings, _build_url, _empty_ref_value,
 )
 
 _FIXTURE_DIR = Path(__file__).parent / 'fixtures'
@@ -152,17 +152,58 @@ def test_parse_nuxt_empty_list_with_nonzero_total_raises():
         _parse_nuxt_listings(_html(payload))
 
 
-def test_parse_nuxt_quiet_day_is_not_a_failure():
-    """A 0-match page returns ([], 0) without raising.
+def test_parse_nuxt_quiet_day_is_not_a_failure(caplog):
+    """A live 0-match page (saved 2026-11-24) returns ([], 0) without a warning.
 
-    Uses the live quiet-day shape (saved 2026-11-20): the total is
-    ['EmptyRef', i] -> the string '0', which unwrap() doesn't resolve.
+    Its total is ['EmptyRef', i] -> the JSON text '0'.
     """
-    quiet = _load_fixture('nuxt_payload.json')
-    quiet[3] = []                                      # no listings
-    quiet += ['0', ['EmptyRef', len(quiet)]]           # '0' at n, EmptyRef at n+1
-    quiet[0]['totalListingsCount'] = len(quiet) - 1
+    caplog.set_level('WARNING', logger='funda_bot.scraper')
+    quiet = _load_fixture('nuxt_payload_zero_match.json')
     assert _parse_nuxt_listings(_html(quiet)) == ([], 0)
+    assert _skip_warnings(caplog) == []
+
+
+@pytest.mark.parametrize('total_marker', [
+    ['SomeFutureRef', 60],  # an unknown wrapper around the '0'
+    ['EmptyRef', 146],      # 'null' -> None
+    ['Ref', 4],             # true -> a bool, which Python counts as an int
+    'forty-five',           # text, not a number
+])
+def test_parse_nuxt_total_not_a_number_raises(total_marker):
+    """A total that isn't a whole number is a failed scrape, not a quiet day.
+
+    Before 2026-11-24 it was read as 0, so a payload change that broke both the
+    total and the listings looked exactly like a day with no matches.
+    """
+    payload = _load_fixture('nuxt_payload_zero_match.json')
+    state = next(x for x in payload if isinstance(x, dict) and 'totalListingsCount' in x)
+    payload[state['totalListingsCount']] = total_marker
+    with pytest.raises(ScrapeError, match='Total listings count is not a number'):
+        _parse_nuxt_listings(_html(payload))
+
+
+@pytest.mark.parametrize('text, value', [
+    ('0', 0), ('false', False), ('null', None), ('""', ''),
+    ('_', None),                  # undefined
+    ('0n', 0),                    # BigInt 0
+    ('not json', 'not json'),     # Nuxt's reviver keeps it as it is
+])
+def test_empty_ref_value_mirrors_nuxt(text, value):
+    assert _empty_ref_value(text) == value
+
+
+def test_parse_nuxt_empty_ref_in_a_listing_field_is_decoded():
+    """An EmptyRef on a listing field reads as its value, not as the marker list.
+
+    Not seen inside listings on the live pages (2026-11-24); unwrap() decodes it
+    wherever it appears, like Nuxt does.
+    """
+    payload = _load_fixture('nuxt_payload.json')
+    n = len(payload)
+    payload += ['null', ['EmptyRef', n]]
+    payload[4]['energy_label'] = n + 1
+    listings, _ = _parse_nuxt_listings(_html(payload))
+    assert listings[0]['energy_label'] is None
 
 
 def _skip_warnings(caplog):
